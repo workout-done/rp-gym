@@ -1,2 +1,3 @@
 rootProject.name = 'rp-gym'
 include 'common'
+include 'discovery-server'
