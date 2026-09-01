@@ -1,0 +1,30 @@
+server:
+  port: 19000
+
+spring:
+  application:
+    name: discovery-server
+
+eureka:
+  # Eureka 인스턴스의 호스트 이름
+  instance:
+    hostname: localhost
+
+  client:
+    # Eureka Server 자신을 다른 Eureka Server에 클라이언트로 등록하지 않음
+    register-with-eureka: false
+
+    # Eureka Server가 다른 Eureka Server의 서비스 목록을 가져오지 않음
+    fetch-registry: false
+
+    # Eureka Client가 Eureka Server에 접속할 주소
+    service-url:
+      defaultZone: http://${eureka.instance.hostname}:${server.port}/eureka/
+
+management:
+  endpoints:
+    web:
+      exposure:
+        # HTTP로 외부에 노출할 Actuator Endpoint
+        # health: 애플리케이션의 현재 상태 확인
+        include: health
