@@ -1,0 +1,45 @@
+plugins {
+    id 'java-library'
+}
+
+group = 'com.workoutdone'
+version = '0.0.1-SNAPSHOT'
+
+java {
+    sourceCompatibility = '17'
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // Jackson, ErrorResponse에서 @JsonInclude 사용
+    api 'com.fasterxml.jackson.core:jackson-annotations'
+
+    // Jakarta Persistence API, BaseEntity 계열에서 JPA 어노테이션 사용
+    api 'jakarta.persistence:jakarta.persistence-api'
+
+    // Spring Web, ErrorCode에서 HttpStatus 사용
+    api 'org.springframework:spring-web'
+
+    // Spring Web MVC, GlobalExceptionHandler에서 @RestControllerAdvice, @ExceptionHandler 등 사용
+    api 'org.springframework:spring-webmvc'
+
+    // Spring Data JPA, BaseEntity 계열에서 JPA 관련 기능과 Auditing 기능 사용
+    api 'org.springframework.data:spring-data-jpa'
+
+    // Servlet API, GlobalExceptionHandler에서 HttpServletRequest 사용
+    api 'jakarta.servlet:jakarta.servlet-api'
+
+    // SLF4J, GlobalExceptionHandler에서 MDC를 사용해 traceId 등 요청별 로깅 정보를 조회하기 위해 사용
+    api 'org.slf4j:slf4j-api'
+
+    // Lombok
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
