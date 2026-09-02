@@ -192,4 +192,20 @@ public class Quest extends BaseCreatedUpdatedEntity {
         }
         return new ApplyResult.Progressed(achievedDelta);
     }
+
+
+    public int progress() {
+        if (lastCumulativeVal == null) {
+            return 0;
+        }
+        return lastCumulativeVal - baselineVal;
+    }
+
+
+    public QuestStatus displayStatus(Instant at) {
+        if (status == QuestStatus.ACTIVE && at.isAfter(expiredAt)) {
+            return QuestStatus.EXPIRED;
+        }
+        return status;
+    }
 }
