@@ -1,0 +1,30 @@
+server:
+  port: 19010
+
+spring:
+  application:
+    name: user-service
+
+eureka:
+  instance:
+    # Eureka Server에 주소를 등록할 때 hostname 대신 IP를 선호
+    prefer-ip-address: true
+
+  client:
+    # Eureka Server에 User Service 등록
+    register-with-eureka: true
+
+    # Eureka Registry의 서비스 목록을 가져옴
+    fetch-registry: true
+
+    service-url:
+      # Eureka Server 주소
+      defaultZone: http://localhost:19000/eureka/
+
+management:
+  endpoints:
+    web:
+      exposure:
+        # HTTP로 노출할 Actuator Endpoint
+        # health: 애플리케이션 상태 확인, info: 애플리케이션 정보 확인
+        include: health, info
