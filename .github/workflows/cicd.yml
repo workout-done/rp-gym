@@ -65,10 +65,12 @@ jobs:
         # 반복되는 CI 빌드 시간을 줄임
 
       # PR인 경우 변경된 파일 확인
+      # tj-actions/changed-files: 변경된 파일과 디렉터리를 찾아주는 Action
+      # 버전 태그 대신 특정 커밋으로 고정하여 동일한 코드가 실행되도록 설정
       - name: Get changed files
         if: ${{ github.event_name == 'pull_request' }}
         id: changed-files
-        uses: tj-actions/changed-files@v44
+        uses: tj-actions/changed-files@9426d40962ed5378910ee2e21d5f8c6fcbf2dd96 # v47.0.6
 
       # 변경된 모듈 분석
       - name: Determine affected modules
