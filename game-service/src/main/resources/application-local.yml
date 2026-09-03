@@ -1,0 +1,28 @@
+# 로컬 단독 실행용 프로파일.
+# Postgres / Redis / Eureka 없이 애플리케이션만 띄워 API 를 직접 호출해 보기 위한 설정.
+# 실행: ./gradlew :game-service:bootRun --args='--spring.profiles.active=local'
+spring:
+  datasource:
+    url: jdbc:h2:mem:gamedb;MODE=PostgreSQL;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+
+  jpa:
+    hibernate:
+      # Flyway 대신 엔티티에서 스키마를 생성한다 (인메모리라 매 실행 초기화).
+      ddl-auto: create-drop
+
+  # V1__create_characters.sql 은 Postgres 전용 문법이라 로컬에서는 끈다.
+  flyway:
+    enabled: false
+
+  h2:
+    console:
+      enabled: true
+
+eureka:
+  client:
+    enabled: false
+    register-with-eureka: false
+    fetch-registry: false
