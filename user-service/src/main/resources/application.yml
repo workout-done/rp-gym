@@ -5,6 +5,9 @@ spring:
   application:
     name: user-service
 
+  config:
+    import: optional:file:.env[.properties]
+
   datasource:
     url: ${POSTGRES_URL}
     username: ${POSTGRES_USERNAME}
