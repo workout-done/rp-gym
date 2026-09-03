@@ -1,7 +1,8 @@
 package com.workoutdone.rpgym.game.domain.entity.quest.aggregate;
 
-import com.workoutdone.rpgym.game.domain.entity.quest.Metric;
-import com.workoutdone.rpgym.game.domain.entity.quest.QuestStatus;
+import com.workoutdone.rpgym.game.quest.domain.Metric;
+import com.workoutdone.rpgym.game.quest.domain.QuestStatus;
+import com.workoutdone.rpgym.game.quest.domain.Quest;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

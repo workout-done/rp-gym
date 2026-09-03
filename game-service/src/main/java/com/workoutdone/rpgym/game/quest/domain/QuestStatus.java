@@ -1,4 +1,4 @@
-package com.workoutdone.rpgym.game.domain.entity.quest;
+package com.workoutdone.rpgym.game.quest.domain;
 
 public enum QuestStatus {
     ACTIVE,

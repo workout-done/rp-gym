@@ -1,6 +1,4 @@
-package com.workoutdone.rpgym.game.domain.vo;
-
-import com.workoutdone.rpgym.game.domain.entity.quest.Metric;
+package com.workoutdone.rpgym.game.quest.domain;
 
 import java.time.Instant;
 import java.time.LocalDate;

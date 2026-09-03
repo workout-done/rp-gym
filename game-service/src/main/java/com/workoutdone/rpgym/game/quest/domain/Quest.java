@@ -1,10 +1,7 @@
-package com.workoutdone.rpgym.game.domain.entity.quest.aggregate;
+package com.workoutdone.rpgym.game.quest.domain;
 
 import com.workoutdone.rpgym.common.entity.BaseCreatedUpdatedEntity;
-import com.workoutdone.rpgym.game.domain.entity.quest.Metric;
-import com.workoutdone.rpgym.game.domain.entity.quest.QuestStatus;
-import com.workoutdone.rpgym.game.domain.vo.ApplyResult;
-import com.workoutdone.rpgym.game.domain.vo.Snapshot;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
