@@ -34,8 +34,4 @@ dependencies {
 
     // SLF4J, GlobalExceptionHandler에서 MDC를 사용해 traceId 등 요청별 로깅 정보를 조회하기 위해 사용
     api 'org.slf4j:slf4j-api'
-
-    // Lombok
-    compileOnly 'org.projectlombok:lombok'
-    annotationProcessor 'org.projectlombok:lombok'
 }
