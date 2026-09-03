@@ -4,6 +4,7 @@ CREATE TABLE health_service.health_activities (
                                                   activity_id       UUID         NOT NULL,
                                                   user_id           UUID         NOT NULL,
                                                   activity_date     DATE         NOT NULL,
+    -- 이벤트로 오가는 판정 기준 시각 → 타임존 정보 필요
                                                   measured_at       TIMESTAMPTZ  NOT NULL,
                                                   steps             INT          NOT NULL DEFAULT 0,
                                                   active_minutes    INT          NOT NULL DEFAULT 0,
@@ -11,6 +12,8 @@ CREATE TABLE health_service.health_activities (
                                                   source            VARCHAR(20)  NOT NULL,
                                                   created_at        TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
                                                   updated_at        TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    -- 낙관적 락 (JPA @Version)
+                                                  version           BIGINT       NOT NULL DEFAULT 0,
                                                   CONSTRAINT pk_health_activities PRIMARY KEY (activity_id)
 );
 
@@ -33,6 +36,7 @@ CREATE TABLE health_service.event_outbox (
                                              retry_count         INT          NOT NULL DEFAULT 0,
                                              created_at          TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
                                              published_at        TIMESTAMP,
+                                             version             BIGINT       NOT NULL DEFAULT 0,
                                              CONSTRAINT pk_event_outbox PRIMARY KEY (outbox_id)
 );
 
