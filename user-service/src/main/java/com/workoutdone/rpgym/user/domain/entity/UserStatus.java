@@ -1,7 +1,7 @@
 package com.workoutdone.rpgym.user.domain.entity;
 
 public enum UserStatus {
-    ACTIVE,
-    WITHDRAWN,
-    SUSPENDED
+    ACTIVE, //활성
+    WITHDRAWN, //탈퇴
+    SUSPENDED //정지
 }
