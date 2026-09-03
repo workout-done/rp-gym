@@ -10,6 +10,16 @@ spring:
     username: ${POSTGRES_USERNAME}
     password: ${POSTGRES_PASSWORD}
 
+  jpa:
+    hibernate:
+      # Flyway가 스키마를 관리하므로 Hibernate는 엔티티-스키마 일치 여부만 검증
+      ddl-auto: validate
+    open-in-view: false
+
+  flyway:
+    # users 테이블 명세서 기준 스키마
+    schemas: user_service
+
   data:
     redis:
       host: ${REDIS_HOST}
