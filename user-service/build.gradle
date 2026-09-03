@@ -14,6 +14,9 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
     implementation 'org.springframework.kafka:spring-kafka'
 
+    // 비밀번호 해싱(BCrypt). Spring Security 전체 starter는 쓰지 않고 crypto 모듈만 사용
+    implementation 'org.springframework.security:spring-security-crypto'
+
     // Flyway, PostgreSQL 스키마 마이그레이션
     implementation 'org.flywaydb:flyway-core'
     implementation 'org.flywaydb:flyway-database-postgresql'

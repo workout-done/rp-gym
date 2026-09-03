@@ -21,7 +21,7 @@ public class ReqSignUpDto {
     private String email;
 
     @NotBlank
-    @Size(min = 8, max = 64)
+    @Size(min = 8, max = 72)
     private String password;
 
     @NotBlank
