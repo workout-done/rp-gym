@@ -14,7 +14,7 @@ import java.util.UUID;
  * 인증 주체는 게이트웨이가 넣어주는 X-User-Id 헤더에서 얻는다.
  */
 @RestController
-@RequestMapping("/api/games/characters")
+@RequestMapping("/api/v1/games/characters")
 @RequiredArgsConstructor
 public class CharacterController {
 

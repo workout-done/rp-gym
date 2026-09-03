@@ -26,7 +26,7 @@ class CharacterControllerTest {
     @MockitoBean
     private CharacterQueryUseCase characterQueryUseCase;
 
-    @DisplayName("GET /api/games/characters/me — 200")
+    @DisplayName("GET /api/v1/games/characters/me — 200")
     @Test
     void getMyCharacter() throws Exception {
         UUID userId = UUID.randomUUID();
@@ -34,7 +34,7 @@ class CharacterControllerTest {
                 .willReturn(new CharacterView(
                         userId, 7, CharacterTier.BRONZE, 820, 20, 100, 20.0, null, null));
 
-        mockMvc.perform(get("/api/games/characters/me")
+        mockMvc.perform(get("/api/v1/games/characters/me")
                         .header("X-User-Id", userId.toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.level").value(7))
@@ -46,7 +46,7 @@ class CharacterControllerTest {
     @DisplayName("X-User-Id 헤더가 없으면 401 UNAUTHORIZED")
     @Test
     void missingHeader() throws Exception {
-        mockMvc.perform(get("/api/games/characters/me"))
+        mockMvc.perform(get("/api/v1/games/characters/me"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
     }
