@@ -3,24 +3,66 @@ plugins {
     id 'org.springframework.boot'
 }
 
+java {
+    // common 모듈과 동일하게 고정. 미지정 시 Gradle 실행 JVM 버전을 따라가 환경마다 달라진다.
+    sourceCompatibility = '17'
+}
+
 dependencies {
+    // 공통 모듈 — BaseEntity 계열, GlobalExceptionHandler, PageResponse, ErrorCode
+    implementation project(':common')
 
-//    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
-//    implementation 'org.springframework.kafka:spring-kafka'
+    // ── Web / 서비스 등록 ──────────────────────────────────────────────
     implementation 'org.springframework.boot:spring-boot-starter-web'
-    implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
-    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
 
-    compileOnly 'org.projectlombok:lombok'
-    annotationProcessor 'org.projectlombok:lombok'
-    testRuntimeOnly 'com.h2database:h2'
-    developmentOnly 'com.h2database:h2'   // local 프로파일 단독 실행용 (배포 산출물에는 포함되지 않음)
+    // ── 영속 ───────────────────────────────────────────────────────────
+    // quests / xp_ledgers / wallets / outbox_events. 멱등성을 DB 유니크 제약으로 강제하므로
+    // JPA와 실제 DB 제약이 둘 다 필요하다.
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     runtimeOnly 'org.postgresql:postgresql'
+    // 스키마 형상 관리. ddl-auto 는 validate 라 마이그레이션이 실제 테이블을 만든다.
     implementation 'org.flywaydb:flyway-core'
     implementation 'org.flywaydb:flyway-database-postgresql'   // Flyway 10+ 에서 PostgreSQL은 별도 모듈
 
+    // ── 메시징 ─────────────────────────────────────────────────────────
+    // HealthActivitySynced / QuestSuggested 소비, QuestCreated / QuestCompleted 발행(Outbox 경유)
+    implementation 'org.springframework.kafka:spring-kafka'
+
+    // ── 검증 ───────────────────────────────────────────────────────────
+    // 조회 API 파라미터 + 수신 이벤트 payload 검증
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+
+    // 관측
+    // traceId를 MDC에 넣고 Kafka 헤더로 전파하기 위한 브릿지.
+    // HTTP 구간은 자동으로 이어지지만 Kafka 구간은 기본 설정으로 끊기므로
+    // spring.kafka.template.observation-enabled / listener.observation-enabled 설정이 함께 필요하다.
+    implementation 'io.micrometer:micrometer-tracing-bridge-brave'
+    // 구조화 JSON 로그. ELK가 안 올라와도 docker compose logs | grep <traceId> 로 찾을수있음
+    implementation 'net.logstash.logback:logstash-logback-encoder:8.0'
+
+    // ── 로컬 실행 ──────────────────────────────────────────────────────
+    // local 프로파일에서 Postgres 없이 단독 부팅할 때 쓴다. 배포 산출물에는 포함되지 않는다.
+    developmentOnly 'com.h2database:h2'
+
+    // ── Lombok ─────────────────────────────────────────────────────────
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+
+    // ── 테스트 ─────────────────────────────────────────────────────────
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testRuntimeOnly 'com.h2database:h2'
     testCompileOnly 'org.projectlombok:lombok'
     testAnnotationProcessor 'org.projectlombok:lombok'
+
+    // 컨슈머 kill / 중복 주입 / 순서 역전 정합성 배치 검증용.
+    testImplementation 'org.springframework.kafka:spring-kafka-test'
+    testImplementation 'org.testcontainers:junit-jupiter'
+    testImplementation 'org.testcontainers:kafka'
+    testImplementation 'org.testcontainers:postgresql'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
 }
