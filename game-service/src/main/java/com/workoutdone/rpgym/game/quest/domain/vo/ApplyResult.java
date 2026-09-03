@@ -1,4 +1,4 @@
-package com.workoutdone.rpgym.game.quest.domain;
+package com.workoutdone.rpgym.game.quest.domain.vo;
 
 /**
  * {Quest.applySnapshot()}의 판정 결과.

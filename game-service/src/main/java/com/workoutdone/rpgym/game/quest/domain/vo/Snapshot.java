@@ -1,7 +1,9 @@
-package com.workoutdone.rpgym.game.quest.domain;
+package com.workoutdone.rpgym.game.quest.domain.vo;
 
 import java.time.Instant;
 import java.time.LocalDate;
+
+import com.workoutdone.rpgym.game.quest.domain.Metric;
 
 /**
  * {HealthActivitySynced}가 실어오는 "그 시점까지의 오늘 누적값" 스냅샷.
