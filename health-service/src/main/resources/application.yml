@@ -5,6 +5,37 @@ spring:
   application:
     name: health-service
 
+  config:
+    # 서비스 디렉터리의 .env를 프로퍼티 파일로 읽는다.
+    # 확장자가 없으므로 [.properties]로 파서를 지정한다.
+    # optional: 이므로 파일이 없어도 기동에 실패하지 않는다(Docker/CI).
+    # OS 환경변수가 우선순위가 높으므로 Compose의 env_file이 항상 이긴다.
+    import: optional:file:.env[.properties]
+
+  datasource:
+    url: ${POSTGRES_URL}
+    username: ${POSTGRES_USERNAME}
+    password: ${POSTGRES_PASSWORD}
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
+
+  jpa:
+    hibernate:
+      # Flyway 도입 전까지는 DDL을 직접 실행하고 매핑 검증만 수행
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: true
+        # Health Service가 소유한 스키마
+        default_schema: health_service
+    open-in-view: false
+
+  jackson:
+    serialization:
+      # 날짜/시각을 epoch 숫자가 아닌 ISO-8601 문자열로 직렬화
+      write-dates-as-timestamps: false
+
 eureka:
   instance:
     # Eureka Server에 주소를 등록할 때 hostname 대신 IP를 선호
