@@ -47,7 +47,7 @@ public class EventOutbox extends BaseCreatedEntity {
     @Column(name = "event_id", nullable = false, updatable = false)
     private UUID eventId;
 
-    @Convert(converter = HealthEventTypeConverter.class)
+    @Enumerated(EnumType.STRING)
     @Column(name = "event_type", length = 50, nullable = false, updatable = false)
     private HealthEventType eventType;
 
