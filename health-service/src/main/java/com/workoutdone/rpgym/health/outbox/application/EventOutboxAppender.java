@@ -32,7 +32,8 @@ public class EventOutboxAppender implements EventOutboxPort {
      */
     @Override
     @Transactional(propagation = Propagation.MANDATORY)
-    public boolean append(HealthEventType eventType,
+    public boolean append(UUID eventId,
+                          HealthEventType eventType,
                           UUID userId,
                           UUID sourceActivityId,
                           String dedupKey,
@@ -43,7 +44,6 @@ public class EventOutboxAppender implements EventOutboxPort {
             return false;
         }
 
-        UUID eventId = UUID.randomUUID();
         EventEnvelope envelope = new EventEnvelope(
                 eventId,
                 eventType,
@@ -53,7 +53,7 @@ public class EventOutboxAppender implements EventOutboxPort {
         );
 
         eventOutboxRepository.save(EventOutbox.pending(
-                UUID.randomUUID(),
+                UUID.randomUUID(),   // outbox_id — 내부 식별자. event_id와 용도가 다르므로 별도로 둔다.
                 eventId,
                 eventType,
                 sourceActivityId,
