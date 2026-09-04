@@ -3,6 +3,7 @@ package com.workoutdone.rpgym.user.user.adapter.in.web;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.workoutdone.rpgym.common.exception.BaseException;
 import com.workoutdone.rpgym.user.user.adapter.in.web.dto.ReqSignUpDto;
+import com.workoutdone.rpgym.user.user.application.SignUpCommand;
 import com.workoutdone.rpgym.user.user.application.SignUpResult;
 import com.workoutdone.rpgym.user.user.application.SignUpService;
 import com.workoutdone.rpgym.user.user.domain.UserRole;
@@ -10,6 +11,7 @@ import com.workoutdone.rpgym.user.user.domain.UserStatus;
 import com.workoutdone.rpgym.user.user.domain.UserErrorCode;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
@@ -19,8 +21,10 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -69,6 +73,43 @@ class UserControllerTest {
                 .andExpect(jsonPath("$.nickname").value("헬스퀘스트유저"))
                 .andExpect(jsonPath("$.role").value("USER"))
                 .andExpect(jsonPath("$.status").value("ACTIVE"));
+    }
+
+    @Test
+    @DisplayName("이메일/닉네임/슬랙 아이디의 앞뒤 공백은 트리밍되고, 비밀번호는 트리밍되지 않은 채로 서비스에 전달된다")
+    void signUp_trimsWhitespaceExceptPassword() throws Exception {
+        SignUpResult result = SignUpResult.builder()
+                .id(UUID.randomUUID())
+                .email("healthuser@example.com")
+                .nickname("헬스퀘스트유저")
+                .role(UserRole.USER)
+                .status(UserStatus.ACTIVE)
+                .createdAt(LocalDateTime.now())
+                .build();
+        given(signUpService.signUp(any())).willReturn(result);
+
+        String rawJson = """
+                {
+                  "email": "  healthuser@example.com  ",
+                  "password": "  myPassw0rd!  ",
+                  "nickname": "  헬스퀘스트유저  ",
+                  "slackId": "  U0123ABC456  "
+                }
+                """;
+
+        mockMvc.perform(post(SIGNUP_URL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(rawJson))
+                .andExpect(status().isCreated());
+
+        ArgumentCaptor<SignUpCommand> captor = ArgumentCaptor.forClass(SignUpCommand.class);
+        verify(signUpService).signUp(captor.capture());
+        SignUpCommand command = captor.getValue();
+
+        assertThat(command.getEmail()).isEqualTo("healthuser@example.com");
+        assertThat(command.getNickname()).isEqualTo("헬스퀘스트유저");
+        assertThat(command.getSlackId()).isEqualTo("U0123ABC456");
+        assertThat(command.getRawPassword()).isEqualTo("  myPassw0rd!  ");
     }
 
     @Test
