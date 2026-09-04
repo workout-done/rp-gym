@@ -31,6 +31,11 @@ spring:
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
 
+jwt:
+  # Access Token 설정 정보
+  secret: ${JWT_SECRET}
+  access-token-expiry-seconds: 1800 #만료시간 30분
+
 eureka:
   instance:
     # Eureka Server에 주소를 등록할 때 hostname 대신 IP를 선호
