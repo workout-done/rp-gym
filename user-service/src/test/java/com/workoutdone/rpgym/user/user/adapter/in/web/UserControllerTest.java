@@ -2,7 +2,9 @@ package com.workoutdone.rpgym.user.user.adapter.in.web;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.workoutdone.rpgym.common.exception.BaseException;
+import com.workoutdone.rpgym.user.user.adapter.in.web.dto.ReqLoginDto;
 import com.workoutdone.rpgym.user.user.adapter.in.web.dto.ReqSignUpDto;
+import com.workoutdone.rpgym.user.user.application.LoginResult;
 import com.workoutdone.rpgym.user.user.application.LoginService;
 import com.workoutdone.rpgym.user.user.application.SignUpCommand;
 import com.workoutdone.rpgym.user.user.application.SignUpResult;
@@ -34,6 +36,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class UserControllerTest {
 
     private static final String SIGNUP_URL = "/api/v1/users/signup";
+    private static final String LOGIN_URL = "/api/v1/users/login";
 
     @Autowired
     private MockMvc mockMvc;
@@ -190,5 +193,87 @@ class UserControllerTest {
                         .content(objectMapper.writeValueAsString(validRequest())))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("NICKNAME_DUPLICATED"));
+    }
+
+    private ReqLoginDto validLoginRequest() {
+        return ReqLoginDto.builder()
+                .email("healthuser@example.com")
+                .password("myPassw0rd!")
+                .build();
+    }
+
+    @Test
+    @DisplayName("이메일/비밀번호가 일치하면 200과 함께 토큰 정보를 반환한다")
+    void login_success() throws Exception {
+        LoginResult result = LoginResult.builder()
+                .accessToken("access-token")
+                .refreshToken("8f3c1e2a-7b4d-4c9e-9a11-3f6d9c0b7e33")
+                .tokenType("Bearer")
+                .expiresIn(1800L)
+                .build();
+        given(loginService.login(any())).willReturn(result);
+
+        mockMvc.perform(post(LOGIN_URL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(validLoginRequest())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.accessToken").value("access-token"))
+                .andExpect(jsonPath("$.refreshToken").value("8f3c1e2a-7b4d-4c9e-9a11-3f6d9c0b7e33"))
+                .andExpect(jsonPath("$.tokenType").value("Bearer"))
+                .andExpect(jsonPath("$.expiresIn").value(1800));
+    }
+
+    @Test
+    @DisplayName("이메일 형식이 아니면 400 INVALID_INPUT을 반환한다")
+    void login_invalidEmail() throws Exception {
+        ReqLoginDto request = ReqLoginDto.builder()
+                .email("not-an-email")
+                .password("myPassw0rd!")
+                .build();
+
+        mockMvc.perform(post(LOGIN_URL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_INPUT"));
+    }
+
+    @Test
+    @DisplayName("비밀번호가 8자 미만이면 400 INVALID_INPUT을 반환한다")
+    void login_passwordTooShort() throws Exception {
+        ReqLoginDto request = ReqLoginDto.builder()
+                .email("healthuser@example.com")
+                .password("short")
+                .build();
+
+        mockMvc.perform(post(LOGIN_URL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_INPUT"));
+    }
+
+    @Test
+    @DisplayName("이메일/비밀번호가 일치하지 않으면(또는 탈퇴한 계정이면) 401 LOGIN_FAILED를 반환한다")
+    void login_loginFailed() throws Exception {
+        given(loginService.login(any())).willThrow(new BaseException(UserErrorCode.LOGIN_FAILED));
+
+        mockMvc.perform(post(LOGIN_URL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(validLoginRequest())))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("LOGIN_FAILED"));
+    }
+
+    @Test
+    @DisplayName("정지된 계정이면 409 ACCOUNT_SUSPENDED를 반환한다")
+    void login_accountSuspended() throws Exception {
+        given(loginService.login(any())).willThrow(new BaseException(UserErrorCode.ACCOUNT_SUSPENDED));
+
+        mockMvc.perform(post(LOGIN_URL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(validLoginRequest())))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("ACCOUNT_SUSPENDED"));
     }
 }
