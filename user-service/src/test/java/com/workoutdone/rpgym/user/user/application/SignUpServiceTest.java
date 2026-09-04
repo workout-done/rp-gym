@@ -74,6 +74,44 @@ class SignUpServiceTest {
     }
 
     @Test
+    @DisplayName("이메일 대소문자가 달라도 정규화(소문자)된 값으로 중복을 확인하고 그 값으로 저장한다")
+    void signUp_normalizesEmailCase() {
+        SignUpCommand command = SignUpCommand.builder()
+                .email("Healthuser@Example.com")
+                .rawPassword("myPassw0rd!")
+                .nickname("헬스퀘스트유저")
+                .slackId("U0123ABC456")
+                .build();
+        given(userRepository.existsByEmailAndDeletedAtIsNull("healthuser@example.com")).willReturn(false);
+        given(userRepository.existsByNicknameAndDeletedAtIsNull(command.getNickname())).willReturn(false);
+        given(passwordEncoder.encode(command.getRawPassword())).willReturn("encoded-password");
+        given(userRepository.save(any(User.class))).willAnswer(invocation -> invocation.getArgument(0));
+
+        SignUpResult result = signUpService.signUp(command);
+
+        assertThat(result.getEmail()).isEqualTo("healthuser@example.com");
+        verify(userRepository).existsByEmailAndDeletedAtIsNull("healthuser@example.com");
+    }
+
+    @Test
+    @DisplayName("대소문자만 다른 이메일로 이미 가입돼 있으면 EMAIL_DUPLICATED 예외를 던진다")
+    void signUp_duplicateEmail_caseInsensitive() {
+        SignUpCommand command = SignUpCommand.builder()
+                .email("User@Example.com")
+                .rawPassword("myPassw0rd!")
+                .nickname("헬스퀘스트유저")
+                .slackId("U0123ABC456")
+                .build();
+        given(userRepository.existsByEmailAndDeletedAtIsNull("user@example.com")).willReturn(true);
+
+        assertThatThrownBy(() -> signUpService.signUp(command))
+                .isInstanceOf(BaseException.class)
+                .satisfies(ex -> assertThat(((BaseException) ex).getErrorCode()).isEqualTo(UserErrorCode.EMAIL_DUPLICATED));
+
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
     @DisplayName("이메일은 중복이 아니지만 닉네임이 중복이면 NICKNAME_DUPLICATED 예외를 던지고 저장하지 않는다")
     void signUp_duplicateNickname() {
         SignUpCommand command = command();
