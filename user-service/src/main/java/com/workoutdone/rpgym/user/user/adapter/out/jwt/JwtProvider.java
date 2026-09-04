@@ -27,6 +27,8 @@ public class JwtProvider {
     }
 
     // Access Token: sub=userId, role, iat, exp. HS256으로 서명
+    // TODO: 로그아웃 시 Blacklist 기능 구현 예정. 그때 여기에 jti 클레임을 추가해야 로그아웃 기능에서 어떤 토큰을 무효화할지 식별할 수 있음
+    //  (Blacklist 등록/조회 로직 자체는 이 메서드가 아니라 로그아웃 기능 쪽에서 구현 예정)
     public String createAccessToken(UUID userId, UserRole role) {
         Instant now = Instant.now();
         Instant expiry = now.plusSeconds(accessTokenExpirySeconds);
