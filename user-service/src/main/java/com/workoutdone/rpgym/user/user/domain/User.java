@@ -25,7 +25,7 @@ public class User extends BaseCreatedUpdatedDeletedEntity {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(nullable = false, length = 255)
+    @Column(nullable = false, length = 255, updatable = false)
     private String email;
 
     @Column(nullable = false, length = 255)
