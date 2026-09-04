@@ -5,6 +5,32 @@ spring:
   application:
     name: user-service
 
+  config:
+    import: optional:file:.env[.properties]
+
+  datasource:
+    url: ${POSTGRES_URL}
+    username: ${POSTGRES_USERNAME}
+    password: ${POSTGRES_PASSWORD}
+
+  jpa:
+    hibernate:
+      # Flyway가 스키마를 관리하므로 Hibernate는 엔티티-스키마 일치 여부만 검증
+      ddl-auto: validate
+    open-in-view: false
+
+  flyway:
+    # users 테이블 명세서 기준 스키마
+    schemas: user_service
+
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
+
 eureka:
   instance:
     # Eureka Server에 주소를 등록할 때 hostname 대신 IP를 선호
