@@ -19,15 +19,18 @@ public class SignUpService {
 
     //회원가입
     public SignUpResult signUp(SignUpCommand command) {
+        // 이메일은 대소문자를 구분하지 않으므로, 중복 확인·저장 모두 정규화된 값 기준으로 처리
+        String normalizedEmail = User.normalizeEmail(command.getEmail());
+
         // 이메일 및 닉네임 중복 여부 확인
-        validateDuplicateEmail(command.getEmail());
+        validateDuplicateEmail(normalizedEmail);
         validateDuplicateNickname(command.getNickname());
 
         // 입력받은 평문 비밀번호를 BCrypt로 해싱하여 저장
         String encodedPassword = passwordEncoder.encode(command.getRawPassword());
 
         User user = User.create(
-                command.getEmail(),
+                normalizedEmail,
                 encodedPassword,
                 command.getNickname(),
                 command.getSlackId()

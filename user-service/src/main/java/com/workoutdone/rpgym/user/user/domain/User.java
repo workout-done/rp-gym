@@ -56,6 +56,12 @@ public class User extends BaseCreatedUpdatedDeletedEntity {
 
     // password는 이미 해시된 값을 받는다. 평문 해싱은 application 계층(PasswordEncoder)의 책임이다.
     public static User create(String email, String encodedPassword, String nickname, String slackId) {
-        return new User(email, encodedPassword, nickname, slackId);
+        return new User(normalizeEmail(email), encodedPassword, nickname, slackId);
+    }
+
+    // 이메일은 대소문자를 구분하지 않는 것으로 취급(User@example.com == user@example.com)
+    // 저장 값과 중복/로그인 조회 조건이 항상 같은 규칙으로 비교되도록 여기서 정규화를 일원화
+    public static String normalizeEmail(String email) {
+        return email == null ? null : email.trim().toLowerCase();
     }
 }
