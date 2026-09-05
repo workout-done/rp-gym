@@ -6,6 +6,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import jakarta.persistence.Version;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -60,6 +61,10 @@ public class DailyHealthSummary extends BaseCreatedUpdatedEntity {
 
     @Column(name = "calculated_at", nullable = false)
     private LocalDateTime calculatedAt;
+
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version;
 
     private DailyHealthSummary(UUID userId, LocalDate activityDate, LocalDateTime now) {
         this.userId = userId;

@@ -11,6 +11,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import jakarta.persistence.Version;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -60,6 +61,10 @@ public class DailyGoalProgress extends BaseCreatedUpdatedEntity {
             @AttributeOverride(name = "unit", column = @Column(name = "unit"))
     })
     private GoalMetricValue goalMetricValue;
+
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version;
 
     private DailyGoalProgress(UUID summaryId, UUID userId, LocalDate activityDate,
                               MetricType metricType, GoalMetricValue goalMetricValue) {
