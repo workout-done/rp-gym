@@ -43,7 +43,8 @@ public class SecurityConfig {
                         .pathMatchers(
                                 "/api/v1/users/login",
                                 "/api/v1/users/signup",
-                                "/api/v1/users/refresh"
+                                "/api/v1/users/refresh",
+                                "/actuator/**"
                         ).permitAll()
 
                         // 그 외 모든 API는 인증 필요
