@@ -1,0 +1,52 @@
+server:
+  port: 19001
+
+spring:
+  application:
+    name: gateway-server
+
+  config:
+    import: optional:file:.env[.properties]
+
+  cloud:
+    gateway:
+      server:
+        webflux:
+          routes:
+            - id: user-service
+              uri: lb://user-service
+              predicates:
+                - Path=/api/v1/users/**, /api/v1/health-profiles/**, /api/v1/long-term-goals/**, /api/v1/daily-goals/**
+
+            - id: health-service
+              uri: lb://health-service
+              predicates:
+                - Path=/api/v1/health-activities/**, /api/v1/health-summary/**
+
+            - id: game-service
+              uri: lb://game-service
+              predicates:
+                - Path=/api/v1/games/**
+
+eureka:
+  client:
+    # Eureka Server에 Gateway 자신을 등록
+    register-with-eureka: true
+
+    # Eureka Registry의 서비스 목록을 가져옴
+    # Gateway에서 서비스 라우팅 시 사용
+    fetch-registry: true
+
+    service-url:
+      # Eureka Server 주소
+      defaultZone: ${EUREKA_SERVER_URL}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        # Gateway 상태 확인을 위한 Actuator Health Endpoint
+        include: health
+
+jwt:
+  secret: ${JWT_SECRET}
