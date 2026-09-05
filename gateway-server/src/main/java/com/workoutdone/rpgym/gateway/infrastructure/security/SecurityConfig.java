@@ -1,10 +1,15 @@
 package com.workoutdone.rpgym.gateway.infrastructure.security;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.workoutdone.rpgym.common.exception.CommonErrorCode;
+import com.workoutdone.rpgym.common.response.ErrorResponse;
 import com.workoutdone.rpgym.common.jwt.JwtClaimConstants;
+import org.slf4j.MDC;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.convert.converter.Converter;
-import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
@@ -13,8 +18,10 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.ReactiveJwtAuthenticationConverterAdapter;
 import org.springframework.security.web.server.SecurityWebFilterChain;
+import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 @Configuration
@@ -23,7 +30,8 @@ public class SecurityConfig {
 
     @Bean
     public SecurityWebFilterChain securityWebFilterChain(
-            ServerHttpSecurity http
+            ServerHttpSecurity http,
+            ObjectMapper objectMapper
     ) {
         return http
                 // CSRF 비활성화
@@ -54,23 +62,22 @@ public class SecurityConfig {
 
                 // 인증/인가 예외 처리
                 .exceptionHandling(exception -> exception
-                        // 인증 실패 시 401 Unauthorized
+                        // 인증 실패 시 공통 ErrorResponse 형식으로 401 응답
                         .authenticationEntryPoint(
-                                (exchange, ex) -> {
-                                    exchange.getResponse()
-                                            .setStatusCode(HttpStatus.UNAUTHORIZED);
-
-                                    return exchange.getResponse().setComplete();
-                                }
+                                (exchange, ex) -> writeErrorResponse(
+                                        exchange,
+                                        objectMapper,
+                                        CommonErrorCode.UNAUTHORIZED
+                                )
                         )
-                        // 인가 실패 시 403 Forbidden
-                        .accessDeniedHandler(
-                                (exchange, ex) -> {
-                                    exchange.getResponse()
-                                            .setStatusCode(HttpStatus.FORBIDDEN);
 
-                                    return exchange.getResponse().setComplete();
-                                }
+                        // 인가 실패 시 공통 ErrorResponse 형식으로 403 응답
+                        .accessDeniedHandler(
+                                (exchange, ex) -> writeErrorResponse(
+                                        exchange,
+                                        objectMapper,
+                                        CommonErrorCode.FORBIDDEN
+                                )
                         )
                 )
                 .build();
@@ -97,4 +104,47 @@ public class SecurityConfig {
         return new ReactiveJwtAuthenticationConverterAdapter(converter);
     }
 
+    /**
+     * Spring Security의 인증/인가 실패 응답을
+     * 프로젝트의 공통 ErrorResponse 형식으로 반환한다.
+     */
+    private Mono<Void> writeErrorResponse(
+            ServerWebExchange exchange,
+            ObjectMapper objectMapper,
+            CommonErrorCode errorCode
+    ) {
+        // 공통 에러 코드와 메시지를 사용하여 ErrorResponse 생성
+        // fields가 필요하지 않은 일반 에러는 of() 메서드에서 기본값으로 처리
+        ErrorResponse response = ErrorResponse.of(
+                errorCode.getCode(),
+                errorCode.getMessage(),
+                MDC.get("traceId")
+        );
+
+        try {
+            // ErrorResponse 객체를 JSON 문자열로 변환
+            byte[] bytes = objectMapper.writeValueAsString(response)
+                    .getBytes(StandardCharsets.UTF_8);
+
+            // 공통 에러 코드에 정의된 HTTP 상태 코드 설정
+            exchange.getResponse().setStatusCode(errorCode.getStatus());
+
+            // 응답 Content-Type을 JSON으로 설정
+            exchange.getResponse()
+                    .getHeaders()
+                    .setContentType(MediaType.APPLICATION_JSON);
+
+            // JSON 데이터를 HTTP Response Body에 작성
+            return exchange.getResponse().writeWith(
+                    Mono.just(
+                            exchange.getResponse()
+                                    .bufferFactory()
+                                    .wrap(bytes)
+                    )
+            );
+        } catch (JsonProcessingException e) {
+            // JSON 변환 실패 시 별도의 응답 body 없이 요청 종료
+            return exchange.getResponse().setComplete();
+        }
+    }
 }
