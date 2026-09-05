@@ -39,8 +39,7 @@ eureka:
 
     service-url:
       # Eureka Server 주소
-      defaultZone: http://localhost:19000/eureka/
-
+      defaultZone: ${EUREKA_SERVER_URL}
 
 management:
   endpoints:
