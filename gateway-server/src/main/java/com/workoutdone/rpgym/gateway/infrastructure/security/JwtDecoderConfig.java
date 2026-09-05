@@ -8,8 +8,8 @@ import org.springframework.security.oauth2.jwt.NimbusReactiveJwtDecoder;
 import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder;
 
 import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
-import java.nio.charset.StandardCharsets;
+
+import com.workoutdone.rpgym.common.jwt.JwtSecretKeyFactory;
 
 @Configuration
 public class JwtDecoderConfig {
@@ -19,11 +19,8 @@ public class JwtDecoderConfig {
             @Value("${jwt.secret}") String secret
     ) {
 
-        // 환경변수에서 주입받은 JWT Secret으로 대칭키 생성
-        SecretKey key = new SecretKeySpec(
-                secret.getBytes(StandardCharsets.UTF_8),
-                "HmacSHA256"
-        );
+        // JWT Secret을 기반으로 서명 검증에 사용할 대칭키 생성
+        SecretKey key = JwtSecretKeyFactory.create(secret);
 
         // HS256 알고리즘을 사용하는 JWT Decoder 생성
         return NimbusReactiveJwtDecoder

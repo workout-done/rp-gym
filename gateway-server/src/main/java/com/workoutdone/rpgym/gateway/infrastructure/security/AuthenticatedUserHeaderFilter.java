@@ -9,6 +9,7 @@ import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 import com.workoutdone.rpgym.common.constant.HeaderConstants;
+import com.workoutdone.rpgym.common.jwt.JwtClaimConstants;
 
 @Component
 public class AuthenticatedUserHeaderFilter implements GlobalFilter {
@@ -25,7 +26,7 @@ public class AuthenticatedUserHeaderFilter implements GlobalFilter {
                     Jwt jwt = (Jwt) authentication.getPrincipal();
 
                     String userId = jwt.getSubject();
-                    String role = jwt.getClaimAsString("role");
+                    String role = jwt.getClaimAsString(JwtClaimConstants.ROLE);
 
                     // 인증된 사용자 정보를 Header로 전달
                     ServerWebExchange mutatedExchange = exchange.mutate()
