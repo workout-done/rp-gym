@@ -3,8 +3,8 @@ package com.workoutdone.rpgym.gateway.infrastructure.security;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.workoutdone.rpgym.common.exception.CommonErrorCode;
-import com.workoutdone.rpgym.common.response.ErrorResponse;
 import com.workoutdone.rpgym.common.jwt.JwtClaimConstants;
+import com.workoutdone.rpgym.common.response.ErrorResponse;
 import org.slf4j.MDC;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -88,17 +88,16 @@ public class SecurityConfig {
     public Converter<Jwt, Mono<AbstractAuthenticationToken>> jwtAuthenticationConverter() {
         JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
 
-        // JWT의 role Claim을 Spring Security의 GrantedAuthority로 변환
+        // 필수 Claim 검증을 통과한 JWT의 role을
+        // Spring Security의 GrantedAuthority로 변환
         converter.setJwtGrantedAuthoritiesConverter(jwt -> {
             String role = jwt.getClaimAsString(JwtClaimConstants.ROLE);
 
-            // role이 없거나 비어 있으면 권한을 부여하지 않음
-            if (role == null || role.isBlank()) {
-                return List.of();
-            }
-
-            // hasRole()과 호환되도록 ROLE_ 접두사를 붙여 권한 생성
-            return List.of(new SimpleGrantedAuthority("ROLE_" + role));
+            // role은 RequiredClaimsValidator에서 이미 검증되었으므로
+            // 여기서는 별도의 null 검증 없이 권한으로 변환
+            return List.of(
+                    new SimpleGrantedAuthority("ROLE_" + role)
+            );
         });
 
         // WebFlux 환경에서 사용할 수 있도록 Reactive Converter로 변환
@@ -115,7 +114,6 @@ public class SecurityConfig {
             CommonErrorCode errorCode
     ) {
         // 공통 에러 코드와 메시지를 사용하여 ErrorResponse 생성
-        // fields가 필요하지 않은 일반 에러는 of() 메서드에서 기본값으로 처리
         ErrorResponse response = ErrorResponse.of(
                 errorCode.getCode(),
                 errorCode.getMessage(),

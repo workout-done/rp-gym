@@ -1,5 +1,7 @@
 package com.workoutdone.rpgym.gateway.infrastructure.security;
 
+import com.workoutdone.rpgym.common.constant.HeaderConstants;
+import com.workoutdone.rpgym.common.jwt.JwtClaimConstants;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.security.core.Authentication;
@@ -7,9 +9,6 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
-
-import com.workoutdone.rpgym.common.constant.HeaderConstants;
-import com.workoutdone.rpgym.common.jwt.JwtClaimConstants;
 
 @Component
 public class AuthenticatedUserHeaderFilter implements GlobalFilter {
@@ -19,6 +18,15 @@ public class AuthenticatedUserHeaderFilter implements GlobalFilter {
             ServerWebExchange exchange,
             GatewayFilterChain chain
     ) {
+        // 클라이언트가 전달한 사용자 정보 Header를 먼저 제거
+        // 인증되지 않은 요청에서도 위조된 사용자 정보가 하위 서비스로 전달되지 않도록 함
+        ServerWebExchange sanitizedExchange = exchange.mutate()
+                .request(request -> request.headers(headers -> {
+                    headers.remove(HeaderConstants.USER_ID);
+                    headers.remove(HeaderConstants.USER_ROLE);
+                }))
+                .build();
+
         return exchange.getPrincipal()
                 .cast(Authentication.class)
                 .flatMap(authentication -> {
@@ -28,22 +36,17 @@ public class AuthenticatedUserHeaderFilter implements GlobalFilter {
                     String userId = jwt.getSubject();
                     String role = jwt.getClaimAsString(JwtClaimConstants.ROLE);
 
-                    // 인증된 사용자 정보를 Header로 전달
-                    ServerWebExchange mutatedExchange = exchange.mutate()
+                    // 검증된 JWT Claim을 사용자 정보 Header로 전달
+                    ServerWebExchange authenticatedExchange = sanitizedExchange.mutate()
                             .request(request -> request.headers(headers -> {
-                                // 기존 사용자 정보 Header 제거
-                                headers.remove(HeaderConstants.USER_ID);
-                                headers.remove(HeaderConstants.USER_ROLE);
-
-                                // 검증된 JWT Claim으로 사용자 정보 Header 추가
                                 headers.add(HeaderConstants.USER_ID, userId);
                                 headers.add(HeaderConstants.USER_ROLE, role);
                             }))
                             .build();
 
-                    return chain.filter(mutatedExchange);
+                    return chain.filter(authenticatedExchange);
                 })
-                // 인증 정보가 없는 요청은 그대로 전달
-                .switchIfEmpty(chain.filter(exchange));
+                // 인증되지 않은 요청은 사용자 정보 Header가 제거된 상태로 전달
+                .switchIfEmpty(chain.filter(sanitizedExchange));
     }
 }
