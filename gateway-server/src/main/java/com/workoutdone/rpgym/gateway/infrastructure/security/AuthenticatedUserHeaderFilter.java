@@ -30,25 +30,24 @@ public class AuthenticatedUserHeaderFilter implements GlobalFilter, Ordered {
 
         return exchange.getPrincipal()
                 .cast(Authentication.class)
-                .flatMap(authentication -> {
-
+                .map(authentication -> {
                     Jwt jwt = (Jwt) authentication.getPrincipal();
 
                     String userId = jwt.getSubject();
                     String role = jwt.getClaimAsString(JwtClaimConstants.ROLE);
 
                     // 검증된 JWT Claim을 사용자 정보 Header로 전달
-                    ServerWebExchange authenticatedExchange = sanitizedExchange.mutate()
+                    return sanitizedExchange.mutate()
                             .request(request -> request.headers(headers -> {
                                 headers.add(HeaderConstants.USER_ID, userId);
                                 headers.add(HeaderConstants.USER_ROLE, role);
                             }))
                             .build();
-
-                    return chain.filter(authenticatedExchange);
                 })
-                // 인증되지 않은 요청은 사용자 정보 Header가 제거된 상태로 전달
-                .switchIfEmpty(chain.filter(sanitizedExchange));
+                // 인증 정보가 없으면 Header를 제거한 요청을 그대로 전달
+                .defaultIfEmpty(sanitizedExchange)
+                // 인증 여부에 따라 결정된 요청을 하위 필터 체인으로 한 번만 전달
+                .flatMap(chain::filter);
     }
 
     @Override
@@ -56,5 +55,4 @@ public class AuthenticatedUserHeaderFilter implements GlobalFilter, Ordered {
         // 실제 하위 서비스 요청이 전송되기 전에 사용자 정보 Header를 처리
         return 0;
     }
-
 }
