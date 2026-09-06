@@ -4,6 +4,7 @@ import com.workoutdone.rpgym.common.constant.HeaderConstants;
 import com.workoutdone.rpgym.common.jwt.JwtClaimConstants;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
+import org.springframework.core.Ordered;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Component;
@@ -11,7 +12,7 @@ import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 @Component
-public class AuthenticatedUserHeaderFilter implements GlobalFilter {
+public class AuthenticatedUserHeaderFilter implements GlobalFilter, Ordered {
 
     @Override
     public Mono<Void> filter(
@@ -49,4 +50,11 @@ public class AuthenticatedUserHeaderFilter implements GlobalFilter {
                 // 인증되지 않은 요청은 사용자 정보 Header가 제거된 상태로 전달
                 .switchIfEmpty(chain.filter(sanitizedExchange));
     }
+
+    @Override
+    public int getOrder() {
+        // 실제 하위 서비스 요청이 전송되기 전에 사용자 정보 Header를 처리
+        return 0;
+    }
+
 }
