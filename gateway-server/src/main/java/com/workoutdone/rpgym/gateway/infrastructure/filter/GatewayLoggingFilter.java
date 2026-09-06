@@ -13,23 +13,22 @@ import reactor.core.publisher.Mono;
 public class GatewayLoggingFilter implements GlobalFilter, Ordered {
 
     @Override
-    public Mono<Void> filter(
-            ServerWebExchange exchange,
-            GatewayFilterChain chain
-    ) {
+    public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         String method = exchange.getRequest().getMethod().name();
         String path = exchange.getRequest().getPath().value();
+        long startTime = System.nanoTime();
 
-        // 요청 로깅
         log.info("Gateway request: {} {}", method, path);
 
-        // 응답 로깅
         return chain.filter(exchange)
                 .doFinally(signal -> {
+                    long latency = (System.nanoTime() - startTime) / 1_000_000;
+
                     log.info(
-                            "Gateway response: {} {} {}",
+                            "Gateway response: {} {} {}ms {}",
                             method,
                             path,
+                            latency,
                             exchange.getResponse().getStatusCode()
                     );
                 });
