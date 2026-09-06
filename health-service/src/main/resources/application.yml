@@ -23,6 +23,18 @@ spring:
 
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
+    producer:
+      # Outbox payload를 문자열 원문 그대로 싣는다. 직렬화기가 값을 다시 만들지 않도록 String으로 고정
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      # 모든 ISR 응답을 기다린다. 발행 성공으로 PUBLISHED를 찍는 이상 유실을 허용할 수 없다
+      acks: all
+      properties:
+        # 프로듀서 내부 재시도로 인한 중복 적재 방지 + 파티션 내 순서 보장
+        enable.idempotence: true
+        max.in.flight.requests.per.connection: 5
+        request.timeout.ms: 10000
+        delivery.timeout.ms: 30000
 
   jpa:
     hibernate:
@@ -39,6 +51,23 @@ spring:
     serialization:
       # 날짜/시각을 epoch 숫자가 아닌 ISO-8601 문자열로 직렬화
       write-dates-as-timestamps: false
+
+rpgym:
+  outbox:
+    # PENDING 폴링 주기 (ms)
+    poll-interval: 1000
+    # 한 라운드에 처리할 최대 건수
+    poll-size: 100
+    # 이 횟수만큼 실패하면 DLQ로 보내고 FAILED로 종료한다
+    max-retry: 5
+    # Kafka 발행 응답 대기 시간
+    send-timeout: 5s
+    dlq-suffix: .dlq
+    # 토픽명은 Game Service 컨슈머와 반드시 일치해야 한다
+    topics:
+      HEALTH_ACTIVITY_SYNCED: health.activity.synced
+      QUEST_SUGGESTED: health.quest.suggested
+      DAILY_GOAL_COMPLETED: health.daily-goal.completed
 
 eureka:
   instance:
