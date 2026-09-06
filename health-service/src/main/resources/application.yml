@@ -33,8 +33,11 @@ spring:
       properties:
         # 프로듀서 내부 재시도로 인한 중복 적재 방지 + 파티션 내 순서 보장
         enable.idempotence: true
+        # 응답을 안 받고도 미리 보낼 수 있는 요청 개수(enable.idempotence가 켜져 있으면 Kafka가 5 이하에서만 순서를 보장해줌. idempotence가 켜져 있으면 기본값 :5)
         max.in.flight.requests.per.connection: 5
+        # 한 번의 시도를 얼마나 기다릴지
         request.timeout.ms: 10000
+        # 재시도 전부 합쳐서 얼마나 버틸지
         delivery.timeout.ms: 30000
 
   jpa:
@@ -55,7 +58,7 @@ spring:
 
 rpgym:
   outbox:
-    # PENDING 폴링 주기 (ms)
+    # PENDING 폴링 주기 (ms) -> 1초마다 event_outbox에서 PENDING을 확인합니다.(1초 뒤 다시 시도)
     poll-interval: 1000
     # 한 라운드에 처리할 최대 건수
     poll-size: 100
