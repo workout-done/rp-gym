@@ -33,11 +33,12 @@ public class HealthSummarySyncService {
     public void sync(UUID userId, UUID activityId, LocalDate activityDate,
                      int steps, int activeMinutes, int activeCalories, Instant measuredAt) {
 
+        LocalDateTime now = LocalDateTime.now();
+
         DailyHealthSummary summary = summaryRepository
                 .findByUserIdAndActivityDate(userId, activityDate)
-                .orElseGet(() -> createInitialSummaryAndProgress(userId, activityDate));
+                .orElseGet(() -> createInitialSummaryAndProgress(userId, activityDate, now));
 
-        LocalDateTime now = LocalDateTime.now();
         boolean applied = summary.applySync(steps, activeMinutes, activeCalories, measuredAt, now);
         if (!applied) {
             return; // 순서 역전된 오래된 데이터만 무시 (재동기화는 통과됨)
@@ -51,7 +52,8 @@ public class HealthSummarySyncService {
         }
         progressRepository.saveAll(progresses);
 
-        boolean allAchieved = progresses.stream().allMatch(DailyGoalProgress::isAchieved);
+        boolean allAchieved = !progresses.isEmpty()
+                && progresses.stream().allMatch(DailyGoalProgress::isAchieved);
         if (allAchieved) {
             boolean newlyAchieved = summary.markAllGoalsAchieved(now);
             summaryRepository.save(summary);
@@ -61,8 +63,8 @@ public class HealthSummarySyncService {
         }
     }
 
-    private DailyHealthSummary createInitialSummaryAndProgress(UUID userId, LocalDate activityDate) {
-        DailyHealthSummary summary = DailyHealthSummary.createFor(userId, activityDate, LocalDateTime.now());
+    private DailyHealthSummary createInitialSummaryAndProgress(UUID userId, LocalDate activityDate, LocalDateTime now) {
+        DailyHealthSummary summary = DailyHealthSummary.createFor(userId, activityDate, now);
         summaryRepository.save(summary);
 
         // TODO: User Service health-contexts 조회로 실제 목표값 받아오기 (지금은 임시 기본값)
