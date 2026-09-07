@@ -50,6 +50,8 @@ public class GatewayLoggingFilter implements GlobalFilter, Ordered {
 
     @Override
     public int getOrder() {
-        return Ordered.LOWEST_PRECEDENCE;
+        // NettyRoutingFilter보다 먼저 실행되도록 순서를 명시
+        return Ordered.LOWEST_PRECEDENCE - 1;
     }
+
 }
