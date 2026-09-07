@@ -5,8 +5,8 @@ spring:
   application:
     name: game-service
 
-config:
-  import: optional:file:.env[.properties]
+  config:
+    import: optional:file:.env[.properties]
 
   datasource:
     url: ${POSTGRES_URL}
