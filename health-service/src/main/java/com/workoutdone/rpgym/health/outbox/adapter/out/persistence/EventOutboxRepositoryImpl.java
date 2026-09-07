@@ -26,8 +26,8 @@ public class EventOutboxRepositoryImpl implements EventOutboxRepository {
     }
 
     @Override
-    public List<EventOutbox> findPending(int limit) {
-        return eventOutboxJpaRepository.findByStatusOrderByCreatedAtAsc(
+    public List<EventOutbox> findPendingForUpdate(int limit) {
+        return eventOutboxJpaRepository.findByStatusForUpdate(
                 OutboxStatus.PENDING, PageRequest.of(0, limit));
     }
 }
