@@ -53,13 +53,6 @@ public class DailyGoalProgress extends BaseCreatedUpdatedEntity {
     private MetricType metricType;
 
     @Embedded
-    @AttributeOverrides({
-            @AttributeOverride(name = "targetValue", column = @Column(name = "target_value")),
-            @AttributeOverride(name = "achievedValue", column = @Column(name = "achieved_value")),
-            @AttributeOverride(name = "shortageValue", column = @Column(name = "shortage_value")),
-            @AttributeOverride(name = "achieved", column = @Column(name = "is_achieved")),
-            @AttributeOverride(name = "unit", column = @Column(name = "unit"))
-    })
     private GoalMetricValue goalMetricValue;
 
     @Version

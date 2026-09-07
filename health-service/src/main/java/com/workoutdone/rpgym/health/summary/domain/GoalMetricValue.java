@@ -6,32 +6,29 @@ import java.math.BigDecimal;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
+import lombok.EqualsAndHashCode;
 
+@EqualsAndHashCode
 @Embeddable
 public class GoalMetricValue {
 
     protected GoalMetricValue() {
-        this.targetValue = null;
-        this.achievedValue = null;
-        this.unit = null;
-        this.shortageValue = null;
-        this.achieved = false;
     }
 
     @Column(name = "target_value", nullable = false, precision = 10, scale = 2)
-    private final BigDecimal targetValue;
+    private BigDecimal targetValue;
 
     @Column(name = "achieved_value", nullable = false, precision = 10, scale = 2)
-    private final BigDecimal achievedValue;
+    private BigDecimal achievedValue;
 
     @Column(name = "unit", nullable = false, length = 10)
-    private final String unit;
+    private String unit;
 
     @Column(name = "shortage_value", nullable = false, precision = 10, scale = 2)
-    private final BigDecimal shortageValue;
+    private BigDecimal shortageValue;
 
     @Column(name = "is_achieved", nullable = false)
-    private final boolean achieved;
+    private boolean achieved;
 
     private GoalMetricValue(BigDecimal targetValue, BigDecimal achievedValue, String unit) {
         this.targetValue = targetValue;

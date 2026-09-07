@@ -76,12 +76,16 @@ public class DailyHealthSummary extends BaseCreatedUpdatedEntity {
         return new DailyHealthSummary(userId, activityDate, now);
     }
 
-    public void applySync(int steps, int activeMinutes, int activeCalories, Instant measuredAt, LocalDateTime calculatedAt) {
+    public boolean applySync(int steps, int activeMinutes, int activeCalories, Instant measuredAt, LocalDateTime calculatedAt) {
+        if (this.lastSyncedAt != null && measuredAt.isBefore(this.lastSyncedAt)) {
+            return false;
+        }
         this.totalSteps = steps;
         this.totalActiveMinutes = activeMinutes;
         this.totalActiveCalories = activeCalories;
         this.lastSyncedAt = measuredAt;
         this.calculatedAt = calculatedAt;
+        return true;
     }
 
     public boolean markAllGoalsAchieved(LocalDateTime now) {

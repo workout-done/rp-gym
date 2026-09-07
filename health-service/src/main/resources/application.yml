@@ -22,17 +22,12 @@ spring:
     password: ${POSTGRES_PASSWORD}
     driver-class-name: org.postgresql.Driver
 
-  data:
-    redis:
-      host: ${REDIS_HOST}
-      port: ${REDIS_PORT}
-
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
 
   jpa:
     hibernate:
-      # Flyway 도입 전까지는 DDL을 직접 실행하고 매핑 검증만 수행
+      # Flyway가 DDL을 관리하므로 Hibernate는 매핑 검증만 수행
       ddl-auto: validate
     properties:
       hibernate:
@@ -41,6 +36,10 @@ spring:
         default_schema: health_service
     open-in-view: false
 
+  flyway:
+    schemas: health_service
+    baseline-on-migrate: true
+
   jackson:
     serialization:
       # 날짜/시각을 epoch 숫자가 아닌 ISO-8601 문자열로 직렬화
@@ -48,16 +47,24 @@ spring:
 
 eureka:
   instance:
+    # Eureka Server에 주소를 등록할 때 hostname 대신 IP를 선호
     prefer-ip-address: true
 
   client:
+    # Eureka Server에 Health Service 등록
     register-with-eureka: true
+
+    # Eureka Registry의 서비스 목록을 가져옴
     fetch-registry: true
+
     service-url:
+      # Eureka Server 주소
       defaultZone: http://localhost:19000/eureka/
 
 management:
   endpoints:
     web:
       exposure:
+        # HTTP로 노출할 Actuator Endpoint
+        # health: 애플리케이션 상태 확인, info: 애플리케이션 정보 확인
         include: health, info
