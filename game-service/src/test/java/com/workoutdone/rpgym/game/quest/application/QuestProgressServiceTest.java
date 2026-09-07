@@ -83,7 +83,7 @@ class QuestProgressServiceTest {
         verify(xpGrantService, times(1)).grant(
                 eq(USER_ID), eq(SourceType.QUEST), eq(quest.getQuestId()), eq(REWARD_XP), eq(COMPLETED_AT));
         verify(outboxRecorder, times(1)).append(
-                eq(AggregateType.QUEST), eq(quest.getQuestId()), eq(OutboxEventType.QuestCompleted),
+                eq(AggregateType.QUEST), eq(quest.getQuestId()), eq(OutboxEventType.QUEST_COMPLETED),
                 eq(USER_ID), eq(COMPLETED_AT), any());
     }
 

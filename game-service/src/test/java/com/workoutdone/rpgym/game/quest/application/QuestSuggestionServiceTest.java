@@ -100,7 +100,7 @@ class QuestSuggestionServiceTest {
         service.accept(validCommand());
 
         verify(outboxRecorder).append(
-                eq(AggregateType.QUEST), any(), eq(OutboxEventType.QuestCreated),
+                eq(AggregateType.QUEST), any(), eq(OutboxEventType.QUEST_CREATED),
                 eq(USER_ID), eq(BASED_ON), any());
     }
 

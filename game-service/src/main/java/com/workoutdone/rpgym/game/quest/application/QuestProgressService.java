@@ -51,7 +51,7 @@ public class QuestProgressService {
             outboxRecorder.append(
                     AggregateType.QUEST,
                     quest.getQuestId(),
-                    OutboxEventType.QuestCompleted,
+                    OutboxEventType.QUEST_COMPLETED,
                     userId,
                     snapshot.measuredAt(),
                     QuestCompletedData.from(quest, completed.achievedDelta(), snapshot.measuredAt())

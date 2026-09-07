@@ -79,7 +79,7 @@ public class QuestSuggestionService {
         outboxRecorder.append(
                 AggregateType.QUEST,
                 quest.getQuestId(),
-                OutboxEventType.QuestCreated,
+                OutboxEventType.QUEST_CREATED,
                 quest.getUserId(),
                 quest.getBaselineMeasuredAt(),
                 QuestCreatedData.from(quest)

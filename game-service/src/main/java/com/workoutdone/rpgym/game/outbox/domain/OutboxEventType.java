@@ -1,6 +1,6 @@
 package com.workoutdone.rpgym.game.outbox.domain;
 
 public enum OutboxEventType {
-    QuestCreated,
-    QuestCompleted
+    QUEST_CREATED,
+    QUEST_COMPLETED
 }
