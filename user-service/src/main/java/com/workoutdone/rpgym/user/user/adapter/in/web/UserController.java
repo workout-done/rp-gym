@@ -56,9 +56,9 @@ public class UserController {
                 .body(ResLoginDto.from(result));
     }
 
-    // USER/ADMIN 둘 다 본인 계정 조회는 가능
+    // USER role만 본인 계정 조회 가능 (ADMIN 제외)
     // X-User-Role 검증은 RoleAuthorizationInterceptor가 처리
-    @RequireRole({UserRole.USER, UserRole.ADMIN})
+    @RequireRole(UserRole.USER)
     @GetMapping("/me")
     public ResponseEntity<ResMyAccountDto> getMyAccount(
             @RequestHeader(value = HeaderConstants.USER_ID, required = false) String userIdHeader
