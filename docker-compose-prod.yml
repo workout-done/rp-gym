@@ -126,7 +126,7 @@ services:
     restart: unless-stopped
 
     environment:
-      SPRING_PROFILES_ACTIVE: prod
+      EUREKA_HOST: eureka-server-blue
 
     expose:
       - "19000"
@@ -144,7 +144,7 @@ services:
     restart: unless-stopped
 
     environment:
-      SPRING_PROFILES_ACTIVE: prod
+      EUREKA_HOST: eureka-server-green
 
     expose:
       - "19000"
@@ -163,10 +163,7 @@ services:
     restart: unless-stopped
 
     environment:
-      SPRING_PROFILES_ACTIVE: prod
-
       EUREKA_SERVER_URL: http://eureka-server-blue:19000/eureka/
-
       JWT_SECRET: ${JWT_SECRET}
 
     expose:
@@ -188,10 +185,7 @@ services:
     restart: unless-stopped
 
     environment:
-      SPRING_PROFILES_ACTIVE: prod
-
       EUREKA_SERVER_URL: http://eureka-server-green:19000/eureka/
-
       JWT_SECRET: ${JWT_SECRET}
 
     expose:
@@ -213,8 +207,6 @@ services:
     restart: unless-stopped
 
     environment:
-      SPRING_PROFILES_ACTIVE: prod
-
       POSTGRES_URL: jdbc:postgresql://postgres-user:5432/user_db
       POSTGRES_USERNAME: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -224,11 +216,10 @@ services:
 
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
 
+      EUREKA_INSTANCE_HOSTNAME: user-service-blue
       EUREKA_SERVER_URL: http://eureka-server-blue:19000/eureka/
 
       JWT_SECRET: ${JWT_SECRET}
-
-      EUREKA_INSTANCE_HOSTNAME: user-service-blue
 
     expose:
       - "19010"
@@ -257,8 +248,6 @@ services:
     restart: unless-stopped
 
     environment:
-      SPRING_PROFILES_ACTIVE: prod
-
       POSTGRES_URL: jdbc:postgresql://postgres-user:5432/user_db
       POSTGRES_USERNAME: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -268,11 +257,10 @@ services:
 
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
 
+      EUREKA_INSTANCE_HOSTNAME: user-service-green
       EUREKA_SERVER_URL: http://eureka-server-green:19000/eureka/
 
       JWT_SECRET: ${JWT_SECRET}
-
-      EUREKA_INSTANCE_HOSTNAME: user-service-green
 
     expose:
       - "19010"
@@ -301,8 +289,6 @@ services:
     restart: unless-stopped
 
     environment:
-      SPRING_PROFILES_ACTIVE: prod
-
       POSTGRES_URL: jdbc:postgresql://postgres-health:5432/health_db
       POSTGRES_USERNAME: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -336,8 +322,6 @@ services:
     restart: unless-stopped
 
     environment:
-      SPRING_PROFILES_ACTIVE: prod
-
       POSTGRES_URL: jdbc:postgresql://postgres-health:5432/health_db
       POSTGRES_USERNAME: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -371,8 +355,6 @@ services:
     restart: unless-stopped
 
     environment:
-      SPRING_PROFILES_ACTIVE: prod
-
       POSTGRES_URL: jdbc:postgresql://postgres-game:5432/game_db
       POSTGRES_USERNAME: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -411,8 +393,6 @@ services:
     restart: unless-stopped
 
     environment:
-      SPRING_PROFILES_ACTIVE: prod
-
       POSTGRES_URL: jdbc:postgresql://postgres-game:5432/game_db
       POSTGRES_USERNAME: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
