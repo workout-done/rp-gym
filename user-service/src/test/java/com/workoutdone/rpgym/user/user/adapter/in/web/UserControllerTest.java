@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.workoutdone.rpgym.common.exception.BaseException;
 import com.workoutdone.rpgym.user.user.adapter.in.web.dto.ReqLoginDto;
 import com.workoutdone.rpgym.user.user.adapter.in.web.dto.ReqSignUpDto;
+import com.workoutdone.rpgym.user.user.application.GetMyAccountService;
 import com.workoutdone.rpgym.user.user.application.LoginResult;
 import com.workoutdone.rpgym.user.user.application.LoginService;
 import com.workoutdone.rpgym.user.user.application.SignUpCommand;
@@ -47,9 +48,12 @@ class UserControllerTest {
     @MockitoBean
     private SignUpService signUpService;
 
-    // UserController가 LoginService에도 의존하므로, 컨텍스트 로딩을 위해 Mock으로 등록해야 한다.
     @MockitoBean
     private LoginService loginService;
+
+    // UserController가 GetMyAccountService에도 의존하므로, 컨텍스트 로딩을 위해 Mock으로 등록해야 한다.
+    @MockitoBean
+    private GetMyAccountService getMyAccountService;
 
     private ReqSignUpDto validRequest() {
         return ReqSignUpDto.builder()
