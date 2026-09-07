@@ -11,6 +11,7 @@ import java.util.UUID;
 @Entity
 @Getter
 @Table(name = "characters",
+       schema = "game_service",
        uniqueConstraints = @UniqueConstraint(
                name = "uk_characters_user_id",
                columnNames = "user_id"
@@ -47,9 +48,12 @@ public class Character {
     /**
      * 신규 캐릭터를 만든다. 레벨은 항상 {@link LevelPolicy#INITIAL_LEVEL} 에서 시작한다.
      *
-     * <p>호출 지점은 {@code RankingService.onXpChanged()} 의 upsert 뿐이다.
-     * <b>조회 API 는 이 메서드를 호출하지 않는다</b> — GET 이 데이터를 바꾸면 안 되고,
-     * 동시 요청 시 중복 생성 경합이 따라오기 때문이다 (SA문서_2 10.1).
+     * 조회 API 는 이 메서드를 호출하지 않는다 GET 이 데이터를 바꾸면 안 되고,
+     * 동시 요청 시 중복 생성 경합이 따라오기 때문이다
+     *
+     * 운영 경로의 캐릭터 생성은 {@code CharacterRepository.upsertLevel()} 의
+     * {@code ON CONFLICT} 가 담당한다. 단일 statement 라 경합이 없기 때문이다.
+     * 이 팩토리는 재구축 배치와 테스트에서 쓴다.
      */
     public static Character create(UUID userId){
         if (userId == null){

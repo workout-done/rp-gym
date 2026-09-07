@@ -5,8 +5,13 @@ spring:
   application:
     name: game-service
 
-config:
-  import: optional:file:.env[.properties]
+  config:
+    # 서비스 디렉터리의 .env 를 프로퍼티 파일로 읽는다.
+    # 실행 위치에 따라 작업 디렉터리가 달라지므로 두 경로를 모두 시도한다.
+    # (gradlew bootRun → game-service/ , IntelliJ Run → 프로젝트 루트)
+    import:
+      - optional:file:.env[.properties]
+      - optional:file:game-service/.env[.properties]
 
   datasource:
     url: ${POSTGRES_URL}
@@ -20,6 +25,14 @@ config:
 
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
+
+  jpa:
+    # ddl-auto: validate 는 지금 켤 수 없다.
+    # Quest 엔티티가 game_service.quests 를 선언하는데 그 테이블을 만드는 마이그레이션이
+    # 아직 없어서(퀘스트 담당 범위) validate 가 부팅을 막는다.
+    # quests DDL 이 정리되면 별도 PR 로 켠다.
+    open-in-view: false
+
 
 eureka:
   instance:

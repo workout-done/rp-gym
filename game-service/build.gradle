@@ -9,6 +9,11 @@ java {
 }
 
 dependencies {
+
+    // ── 랭킹 ───────────────────────────────────────────────────────────
+    // Sorted Set 으로 실시간 순위를 관리한다. 랭킹 조회 경로는 DB 를 읽지 않는다.
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+
     // 공통 모듈 — BaseEntity 계열, GlobalExceptionHandler, PageResponse, ErrorCode
     implementation project(':common')
 

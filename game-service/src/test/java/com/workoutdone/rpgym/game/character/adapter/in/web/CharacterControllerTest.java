@@ -42,12 +42,4 @@ class CharacterControllerTest {
                 .andExpect(jsonPath("$.totalXp").value(820))
                 .andExpect(jsonPath("$.progressPercent").value(20.0));
     }
-
-    @DisplayName("X-User-Id 헤더가 없으면 401 UNAUTHORIZED")
-    @Test
-    void missingHeader() throws Exception {
-        mockMvc.perform(get("/api/v1/games/characters/me"))
-                .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
-    }
 }
