@@ -273,14 +273,14 @@ class UserControllerTest {
     }
 
     @Test
-    @DisplayName("정지된 계정이면 409 ACCOUNT_SUSPENDED를 반환한다")
+    @DisplayName("정지된 계정이면 403 ACCOUNT_SUSPENDED를 반환한다")
     void login_accountSuspended() throws Exception {
         given(loginService.login(any())).willThrow(new BaseException(UserErrorCode.ACCOUNT_SUSPENDED));
 
         mockMvc.perform(post(LOGIN_URL)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validLoginRequest())))
-                .andExpect(status().isConflict())
+                .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("ACCOUNT_SUSPENDED"));
     }
 
