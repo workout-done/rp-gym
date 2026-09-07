@@ -1,7 +1,9 @@
 package com.workoutdone.rpgym.user.user.adapter.in.web;
 
+import com.workoutdone.rpgym.common.constant.HeaderConstants;
 import com.workoutdone.rpgym.common.exception.BaseException;
 import com.workoutdone.rpgym.common.exception.CommonErrorCode;
+import com.workoutdone.rpgym.user.security.RequireRole;
 import com.workoutdone.rpgym.user.user.adapter.in.web.dto.ReqLoginDto;
 import com.workoutdone.rpgym.user.user.adapter.in.web.dto.ReqSignUpDto;
 import com.workoutdone.rpgym.user.user.adapter.in.web.dto.ResLoginDto;
@@ -13,6 +15,7 @@ import com.workoutdone.rpgym.user.user.application.LoginResult;
 import com.workoutdone.rpgym.user.user.application.LoginService;
 import com.workoutdone.rpgym.user.user.application.SignUpResult;
 import com.workoutdone.rpgym.user.user.application.SignUpService;
+import com.workoutdone.rpgym.user.user.domain.UserRole;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -30,9 +33,6 @@ import java.util.UUID;
 @RequestMapping("/api/v1/users")
 @RequiredArgsConstructor
 public class UserController {
-
-    private static final String USER_ID_HEADER = "X-User-Id";
-    private static final String USER_ROLE_HEADER = "X-User-Role";
 
     private final SignUpService signUpService;
     private final LoginService loginService;
@@ -56,12 +56,14 @@ public class UserController {
                 .body(ResLoginDto.from(result));
     }
 
+    // USER/ADMIN 둘 다 본인 계정 조회는 가능
+    // X-User-Role 검증은 RoleAuthorizationInterceptor가 처리
+    @RequireRole({UserRole.USER, UserRole.ADMIN})
     @GetMapping("/me")
     public ResponseEntity<ResMyAccountDto> getMyAccount(
-            @RequestHeader(value = USER_ID_HEADER, required = false) String userIdHeader,
-            @RequestHeader(value = USER_ROLE_HEADER, required = false) String userRoleHeader
+            @RequestHeader(value = HeaderConstants.USER_ID, required = false) String userIdHeader
     ) {
-        UUID userId = resolveUserId(userIdHeader, userRoleHeader);
+        UUID userId = resolveUserId(userIdHeader);
         GetMyAccountResult result = getMyAccountService.getMyAccount(userId);
 
         return ResponseEntity
@@ -69,11 +71,10 @@ public class UserController {
                 .body(ResMyAccountDto.from(result));
     }
 
-    // 게이트웨이를 거치지 않아 X-User-Id/X-User-Role이 없거나, UUID 형식이 아니면 인증 안 된 요청으로 취급
+    // 게이트웨이를 거치지 않아 X-User-Id가 없거나 UUID 형식이 아니면 인증 안 된 요청으로 취급
     // 실제로 존재하는 사용자인지 여부는 GetMyAccountService.getMyAccount 에서 처리
-    private UUID resolveUserId(String userIdHeader, String userRoleHeader) {
-        if (userIdHeader == null || userIdHeader.isBlank()
-                || userRoleHeader == null || userRoleHeader.isBlank()) {
+    private UUID resolveUserId(String userIdHeader) {
+        if (userIdHeader == null || userIdHeader.isBlank()) {
             throw new BaseException(CommonErrorCode.UNAUTHORIZED);
         }
 
