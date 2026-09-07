@@ -1,9 +1,14 @@
 package com.workoutdone.rpgym.user.user.adapter.in.web;
 
+import com.workoutdone.rpgym.common.exception.BaseException;
+import com.workoutdone.rpgym.common.exception.CommonErrorCode;
 import com.workoutdone.rpgym.user.user.adapter.in.web.dto.ReqLoginDto;
 import com.workoutdone.rpgym.user.user.adapter.in.web.dto.ReqSignUpDto;
 import com.workoutdone.rpgym.user.user.adapter.in.web.dto.ResLoginDto;
+import com.workoutdone.rpgym.user.user.adapter.in.web.dto.ResMyAccountDto;
 import com.workoutdone.rpgym.user.user.adapter.in.web.dto.ResSignUpDto;
+import com.workoutdone.rpgym.user.user.application.GetMyAccountResult;
+import com.workoutdone.rpgym.user.user.application.GetMyAccountService;
 import com.workoutdone.rpgym.user.user.application.LoginResult;
 import com.workoutdone.rpgym.user.user.application.LoginService;
 import com.workoutdone.rpgym.user.user.application.SignUpResult;
@@ -12,18 +17,26 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/users")
 @RequiredArgsConstructor
 public class UserController {
 
+    private static final String USER_ID_HEADER = "X-User-Id";
+    private static final String USER_ROLE_HEADER = "X-User-Role";
+
     private final SignUpService signUpService;
     private final LoginService loginService;
+    private final GetMyAccountService getMyAccountService;
 
     @PostMapping("/signup")
     public ResponseEntity<ResSignUpDto> signUp(@Valid @RequestBody ReqSignUpDto request) {
@@ -41,5 +54,32 @@ public class UserController {
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(ResLoginDto.from(result));
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<ResMyAccountDto> getMyAccount(
+            @RequestHeader(value = USER_ID_HEADER, required = false) String userIdHeader,
+            @RequestHeader(value = USER_ROLE_HEADER, required = false) String userRoleHeader
+    ) {
+        UUID userId = resolveUserId(userIdHeader, userRoleHeader);
+        GetMyAccountResult result = getMyAccountService.getMyAccount(userId);
+
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(ResMyAccountDto.from(result));
+    }
+
+    // 게이트웨이를 거치지 않아 X-User-Id/X-User-Role이 없거나, UUID 형식이 아니면 인증 안 된 요청으로 취급
+    private UUID resolveUserId(String userIdHeader, String userRoleHeader) {
+        if (userIdHeader == null || userIdHeader.isBlank()
+                || userRoleHeader == null || userRoleHeader.isBlank()) {
+            throw new BaseException(CommonErrorCode.UNAUTHORIZED);
+        }
+
+        try {
+            return UUID.fromString(userIdHeader);
+        } catch (IllegalArgumentException e) {
+            throw new BaseException(CommonErrorCode.UNAUTHORIZED);
+        }
     }
 }
