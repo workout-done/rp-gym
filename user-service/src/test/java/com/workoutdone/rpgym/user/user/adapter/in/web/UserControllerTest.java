@@ -313,6 +313,39 @@ class UserControllerTest {
     }
 
     @Test
+    @DisplayName("X-User-Role이 ADMIN이어도 200과 함께 내 계정 정보를 반환한다")
+    void getMyAccount_admin_success() throws Exception {
+        UUID userId = UUID.randomUUID();
+        GetMyAccountResult result = GetMyAccountResult.builder()
+                .id(userId)
+                .email("admin@example.com")
+                .nickname("관리자")
+                .role(UserRole.ADMIN)
+                .status(UserStatus.ACTIVE)
+                .slackId("U0123ABC456")
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
+        given(getMyAccountService.getMyAccount(userId)).willReturn(result);
+
+        mockMvc.perform(get(ME_URL)
+                        .header("X-User-Id", userId.toString())
+                        .header("X-User-Role", "ADMIN"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.role").value("ADMIN"));
+    }
+
+    @Test
+    @DisplayName("X-User-Role이 USER/ADMIN이 아니면 403 FORBIDDEN을 반환한다")
+    void getMyAccount_disallowedRole() throws Exception {
+        mockMvc.perform(get(ME_URL)
+                        .header("X-User-Id", UUID.randomUUID().toString())
+                        .header("X-User-Role", "GUEST"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("FORBIDDEN"));
+    }
+
+    @Test
     @DisplayName("X-User-Id/X-User-Role 헤더가 둘 다 없으면 401 UNAUTHORIZED를 반환한다")
     void getMyAccount_noHeaders() throws Exception {
         mockMvc.perform(get(ME_URL))
