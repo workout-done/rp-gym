@@ -27,4 +27,4 @@ management:
       exposure:
         # HTTP로 외부에 노출할 Actuator Endpoint
         # health: 애플리케이션의 현재 상태 확인
-        include: health
+        include: health, info, prometheus
