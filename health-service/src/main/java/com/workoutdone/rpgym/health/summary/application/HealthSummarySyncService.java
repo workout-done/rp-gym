@@ -24,6 +24,11 @@ public class HealthSummarySyncService {
     private final DailyGoalProgressRepository progressRepository;
     // TODO: User Service health-contexts 조회 클라이언트 (다음 작업)
 
+    // HealthSummarySyncService 클래스 상단에 추가
+    private static final BigDecimal DEFAULT_STEP_GOAL = BigDecimal.valueOf(5000);
+    private static final BigDecimal DEFAULT_ACTIVE_MINUTES_GOAL = BigDecimal.valueOf(60);
+    private static final BigDecimal DEFAULT_ACTIVE_CALORIES_GOAL = BigDecimal.valueOf(300);
+
     @Transactional
     public void sync(UUID userId, UUID activityId, LocalDate activityDate,
                      int steps, int activeMinutes, int activeCalories, Instant measuredAt) {
@@ -48,8 +53,11 @@ public class HealthSummarySyncService {
 
         boolean allAchieved = progresses.stream().allMatch(DailyGoalProgress::isAchieved);
         if (allAchieved) {
-            summary.markAllGoalsAchieved(now);
+            boolean newlyAchieved = summary.markAllGoalsAchieved(now);
             summaryRepository.save(summary);
+            // newlyAchieved == true일 때만 DailyGoalCompleted를 발행해야 중복 발행이 안 됨.
+            // 이번 스코프는 발행 자체를 안 함(팀 결정: 보너스 XP 없음, Achievement는 추가기능 기간).
+            // 나중에 이벤트 발행을 추가할 땐 이 변수를 조건으로 써야 한다.
         }
     }
 
@@ -59,9 +67,9 @@ public class HealthSummarySyncService {
 
         // TODO: User Service health-contexts 조회로 실제 목표값 받아오기 (지금은 임시 기본값)
         progressRepository.saveAll(List.of(
-                DailyGoalProgress.createFor(summary.getSummaryId(), userId, activityDate, MetricType.STEPS, BigDecimal.valueOf(3000)),
-                DailyGoalProgress.createFor(summary.getSummaryId(), userId, activityDate, MetricType.ACTIVE_MINUTES, BigDecimal.valueOf(30)),
-                DailyGoalProgress.createFor(summary.getSummaryId(), userId, activityDate, MetricType.ACTIVE_CALORIES, BigDecimal.valueOf(300))
+                DailyGoalProgress.createFor(summary.getSummaryId(), userId, activityDate, MetricType.STEPS, DEFAULT_STEP_GOAL),
+                DailyGoalProgress.createFor(summary.getSummaryId(), userId, activityDate, MetricType.ACTIVE_MINUTES, DEFAULT_ACTIVE_MINUTES_GOAL),
+                DailyGoalProgress.createFor(summary.getSummaryId(), userId, activityDate, MetricType.ACTIVE_CALORIES, DEFAULT_ACTIVE_CALORIES_GOAL)
         ));
         return summary;
     }
