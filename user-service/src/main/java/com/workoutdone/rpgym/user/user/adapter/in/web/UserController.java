@@ -70,6 +70,7 @@ public class UserController {
     }
 
     // 게이트웨이를 거치지 않아 X-User-Id/X-User-Role이 없거나, UUID 형식이 아니면 인증 안 된 요청으로 취급
+    // 실제로 존재하는 사용자인지 여부는 GetMyAccountService.getMyAccount 에서 처리
     private UUID resolveUserId(String userIdHeader, String userRoleHeader) {
         if (userIdHeader == null || userIdHeader.isBlank()
                 || userRoleHeader == null || userRoleHeader.isBlank()) {
