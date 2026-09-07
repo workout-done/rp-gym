@@ -58,7 +58,7 @@ spring:
 
 rpgym:
   outbox:
-    # PENDING 폴링 주기 (ms) -> 1초마다 event_outbox에서 PENDING을 확인합니다.(1초 뒤 다시 시도)
+    # PENDING 폴링 주기 (ms)
     poll-interval: 1000
     # 한 라운드에 처리할 최대 건수
     poll-size: 100
@@ -66,12 +66,11 @@ rpgym:
     max-retry: 5
     # Kafka 발행 응답 대기 시간
     send-timeout: 5s
+    # Health Service가 발행하는 모든 이벤트를 한 토픽으로 보낸다.
+    # 종류별로 나누면 같은 sync에서 나간 이벤트들이 서로 다른 토픽으로 흩어져
+    # 소비 순서가 뒤집힌다. (Quest baseline이 옛날 누적값으로 고정되는 문제)
+    topic: health.events
     dlq-suffix: .dlq
-    # 토픽명은 Game Service 컨슈머와 반드시 일치해야 한다
-    topics:
-      HEALTH_ACTIVITY_SYNCED: health.activity.synced
-      QUEST_SUGGESTED: health.quest.suggested
-      DAILY_GOAL_COMPLETED: health.daily-goal.completed
 
 eureka:
   instance:

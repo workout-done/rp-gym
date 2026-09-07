@@ -2,6 +2,7 @@ package com.workoutdone.rpgym.health.outbox.adapter.out.kafka;
 
 import com.workoutdone.rpgym.health.outbox.application.EventPublisherPort;
 import com.workoutdone.rpgym.health.outbox.config.OutboxPublishProperties;
+import com.workoutdone.rpgym.health.outbox.domain.HealthEventType;
 import com.workoutdone.rpgym.health.outbox.exception.EventPublishException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,36 +26,36 @@ import java.util.concurrent.TimeoutException;
 @RequiredArgsConstructor
 public class EventKafkaPublisher implements EventPublisherPort {
 
-    private static final String HEADER_ORIGINAL_TOPIC = "x-original-topic";
+    /** Game Service가 payload 역직렬화 전에 타입으로 필터링할 수 있게 하는 헤더 */
+    private static final String HEADER_EVENT_TYPE = "eventType";
     private static final String HEADER_RETRY_COUNT = "x-retry-count";
     private static final String HEADER_ERROR_MESSAGE = "x-error-message";
 
-    /** 헤더에 스택트레이스(어떤 메서드들을 거쳐서 여기까지 왔는지 호출 경로를 기록한 목록) 전문이 들어가지 않도록 자른다 */
+    /** 헤더에 스택트레이스 전문이 들어가지 않도록 자른다 */
     private static final int ERROR_MESSAGE_MAX_LENGTH = 500;
 
     private final KafkaTemplate<String, String> kafkaTemplate;
     private final OutboxPublishProperties properties;
 
     @Override
-    public void publish(String topic, String partitionKey, String payload) {
-        send(new ProducerRecord<>(topic, partitionKey, payload));
+    public void publish(String topic, String partitionKey, String payload, HealthEventType eventType) {
+        ProducerRecord<String, String> record = new ProducerRecord<>(topic, partitionKey, payload);
+        record.headers().add(HEADER_EVENT_TYPE, bytes(eventType.name()));
+        send(record);
     }
 
     @Override
     public void publishToDlq(String dlqTopic,
                              String partitionKey,
                              String payload,
-                             String originalTopic,
+                             HealthEventType eventType,
                              int retryCount,
                              String errorMessage) {
 
-        ProducerRecord<String, String> record =
-                new ProducerRecord<>(dlqTopic, partitionKey, payload);
-
-        record.headers().add(HEADER_ORIGINAL_TOPIC, bytes(originalTopic));
+        ProducerRecord<String, String> record = new ProducerRecord<>(dlqTopic, partitionKey, payload);
+        record.headers().add(HEADER_EVENT_TYPE, bytes(eventType.name()));
         record.headers().add(HEADER_RETRY_COUNT, bytes(String.valueOf(retryCount)));
         record.headers().add(HEADER_ERROR_MESSAGE, bytes(abbreviate(errorMessage)));
-
         send(record);
     }
 

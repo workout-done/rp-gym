@@ -15,9 +15,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Duration;
-import java.util.EnumMap;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -34,8 +32,8 @@ import static org.mockito.Mockito.times;
 @ExtendWith(MockitoExtension.class)
 class OutboxRelayTest {
 
-    private static final String TOPIC = "health.activity.synced";
-    private static final String DLQ_TOPIC = "health.activity.synced.dlq";
+    private static final String TOPIC = "health.events";
+    private static final String DLQ_TOPIC = "health.events.dlq";
     private static final int MAX_RETRY = 3;
 
     @Mock
@@ -48,11 +46,9 @@ class OutboxRelayTest {
 
     @BeforeEach
     void setUp() {
-        Map<HealthEventType, String> topics = new EnumMap<>(HealthEventType.class);
-        topics.put(HealthEventType.HEALTH_ACTIVITY_SYNCED, TOPIC);
-
+        // 순서: pollSize, maxRetry, sendTimeout, topic, dlqSuffix
         OutboxPublishProperties properties = new OutboxPublishProperties(
-                100, MAX_RETRY, Duration.ofSeconds(5), ".dlq", topics);
+                100, MAX_RETRY, Duration.ofSeconds(5), TOPIC, ".dlq");
 
         outboxRelay = new OutboxRelay(eventOutboxRepository, eventPublisherPort, properties);
     }
@@ -73,8 +69,11 @@ class OutboxRelayTest {
         assertThat(outbox.getPublishedAt()).isNotNull();
 
         ArgumentCaptor<String> payloadCaptor = ArgumentCaptor.forClass(String.class);
-        then(eventPublisherPort).should()
-                .publish(eq(TOPIC), eq(outbox.getPartitionKey()), payloadCaptor.capture());
+        then(eventPublisherPort).should().publish(
+                eq(TOPIC),
+                eq(outbox.getPartitionKey()),
+                payloadCaptor.capture(),
+                eq(HealthEventType.HEALTH_ACTIVITY_SYNCED));
 
         // 발행 시점에 JSON을 재구성하면 eventId가 바뀐다. 저장된 문자열 그대로여야 한다.
         assertThat(payloadCaptor.getValue()).isSameAs(outbox.getPayload());
@@ -86,8 +85,7 @@ class OutboxRelayTest {
         // given
         EventOutbox outbox = pendingOutbox();
         given(eventOutboxRepository.findPendingForUpdate(anyInt())).willReturn(List.of(outbox));
-        willThrow(new EventPublishException(TOPIC, new RuntimeException("broker down")))
-                .given(eventPublisherPort).publish(anyString(), anyString(), anyString());
+        givenPublishFails();
 
         // when
         int publishedCount = outboxRelay.relayOnce();
@@ -96,8 +94,9 @@ class OutboxRelayTest {
         assertThat(publishedCount).isZero();
         assertThat(outbox.getStatus()).isEqualTo(OutboxStatus.PENDING);
         assertThat(outbox.getRetryCount()).isEqualTo(1);
-        then(eventPublisherPort).should(never())
-                .publishToDlq(anyString(), anyString(), anyString(), anyString(), anyInt(), anyString());
+        then(eventPublisherPort).should(never()).publishToDlq(
+                anyString(), anyString(), anyString(),
+                any(HealthEventType.class), anyInt(), anyString());
     }
 
     @Test
@@ -105,12 +104,9 @@ class OutboxRelayTest {
     void 최대_재시도_초과시_DLQ() {
         // given — 이미 MAX_RETRY - 1회 실패한 상태
         EventOutbox outbox = pendingOutbox();
-        for (int i = 0; i < MAX_RETRY - 1; i++) {
-            outbox.markRetryable();
-        }
+        failBefore(outbox, MAX_RETRY - 1);
         given(eventOutboxRepository.findPendingForUpdate(anyInt())).willReturn(List.of(outbox));
-        willThrow(new EventPublishException(TOPIC, new RuntimeException("broker down")))
-                .given(eventPublisherPort).publish(anyString(), anyString(), anyString());
+        givenPublishFails();
 
         // when
         outboxRelay.relayOnce();
@@ -118,8 +114,12 @@ class OutboxRelayTest {
         // then
         assertThat(outbox.getStatus()).isEqualTo(OutboxStatus.FAILED);
         then(eventPublisherPort).should().publishToDlq(
-                eq(DLQ_TOPIC), eq(outbox.getPartitionKey()), eq(outbox.getPayload()),
-                eq(TOPIC), eq(MAX_RETRY), anyString());
+                eq(DLQ_TOPIC),
+                eq(outbox.getPartitionKey()),
+                eq(outbox.getPayload()),
+                eq(HealthEventType.HEALTH_ACTIVITY_SYNCED),
+                eq(MAX_RETRY),
+                anyString());
     }
 
     @Test
@@ -127,15 +127,13 @@ class OutboxRelayTest {
     void DLQ_발행_실패() {
         // given
         EventOutbox outbox = pendingOutbox();
-        for (int i = 0; i < MAX_RETRY - 1; i++) {
-            outbox.markRetryable();
-        }
+        failBefore(outbox, MAX_RETRY - 1);
         given(eventOutboxRepository.findPendingForUpdate(anyInt())).willReturn(List.of(outbox));
-        willThrow(new EventPublishException(TOPIC, new RuntimeException("broker down")))
-                .given(eventPublisherPort).publish(anyString(), anyString(), anyString());
+        givenPublishFails();
         willThrow(new EventPublishException(DLQ_TOPIC, new RuntimeException("broker down")))
                 .given(eventPublisherPort).publishToDlq(
-                        anyString(), anyString(), anyString(), anyString(), anyInt(), anyString());
+                        anyString(), anyString(), anyString(),
+                        any(HealthEventType.class), anyInt(), anyString());
 
         // when
         outboxRelay.relayOnce();
@@ -151,17 +149,29 @@ class OutboxRelayTest {
         EventOutbox first = pendingOutbox();
         EventOutbox second = pendingOutbox();
         given(eventOutboxRepository.findPendingForUpdate(anyInt())).willReturn(List.of(first, second));
-        willThrow(new EventPublishException(TOPIC, new RuntimeException("broker down")))
-                .given(eventPublisherPort).publish(anyString(), anyString(), anyString());
+        givenPublishFails();
 
         // when
         outboxRelay.relayOnce();
 
         // then — 첫 건에서만 발행을 시도하고 멈춘다
-        then(eventPublisherPort).should(times(1))
-                .publish(anyString(), anyString(), anyString());
+        then(eventPublisherPort).should(times(1)).publish(
+                anyString(), anyString(), anyString(), any(HealthEventType.class));
         assertThat(second.getStatus()).isEqualTo(OutboxStatus.PENDING);
         assertThat(second.getRetryCount()).isZero();
+    }
+
+    private void givenPublishFails() {
+        willThrow(new EventPublishException(TOPIC, new RuntimeException("broker down")))
+                .given(eventPublisherPort).publish(
+                        anyString(), anyString(), anyString(), any(HealthEventType.class));
+    }
+
+    /** 이전에 count번 실패한 상태로 만든다 (PENDING 유지, retryCount 증가) */
+    private void failBefore(EventOutbox outbox, int count) {
+        for (int i = 0; i < count; i++) {
+            outbox.markRetryable();
+        }
     }
 
     private EventOutbox pendingOutbox() {
