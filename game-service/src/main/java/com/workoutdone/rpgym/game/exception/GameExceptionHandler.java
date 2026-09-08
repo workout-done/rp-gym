@@ -1,4 +1,4 @@
-package com.workoutdone.rpgym.game.character.exception;
+package com.workoutdone.rpgym.game.exception;
 
 import com.workoutdone.rpgym.common.exception.CommonErrorCode;
 import com.workoutdone.rpgym.common.response.ErrorResponse;
@@ -13,6 +13,8 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 
 /**
  * game-service 전용 예외 처리.
+ *
+ * <p>캐릭터·랭킹 등 game-service 의 모든 컨트롤러에 적용되므로 특정 컨텍스트 하위가 아니라 서비스 최상단에 둔다.
  *
  * <p>응답 스키마와 에러 코드는 common 모듈({@link ErrorResponse}, {@link CommonErrorCode}) 을 그대로 쓴다.
  * 인증은 API Gateway 가 담당하므로 여기서는 인증 관련 예외를 다루지 않는다.

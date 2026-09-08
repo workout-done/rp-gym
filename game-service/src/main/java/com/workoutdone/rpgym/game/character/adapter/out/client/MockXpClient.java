@@ -2,14 +2,14 @@ package com.workoutdone.rpgym.game.character.adapter.out.client;
 
 import com.workoutdone.rpgym.game.character.domain.XpClient;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.util.UUID;
 
 @Slf4j
 @Component
-@ConditionalOnMissingBean(name = "walletXpClient")
+@ConditionalOnProperty(name = "rpgym.xp.source", havingValue = "mock", matchIfMissing = true)
 public class MockXpClient implements XpClient {
 
     private static final int MAX_MOCK_XP = 5_000;

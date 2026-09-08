@@ -57,3 +57,7 @@ management:
         # HTTP로 노출할 Actuator Endpoint
         # health: 애플리케이션 상태 확인, info: 애플리케이션 정보 확인
         include: health, info
+
+rpgym:
+  xp:
+    source: mock # wallets 준비되면 wallet 으로 변경

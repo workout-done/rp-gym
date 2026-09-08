@@ -29,17 +29,17 @@ public record MyRankingView(
         );
     }
 
-    // 아직 XP를 한번도 받지못해 ZSET에 없는 사용자
-    //404가 아님. 기본값 200으로 캐릭터 조회와 같은 원칙으로 응답함.
-    public static MyRankingView notRanked(UUID userId, long totalCount){
+    /** ZSET 에 아직 없는 사용자. 404 가 아니라 기본값 200 으로 응답한다. */
+    public static MyRankingView notRanked(UUID userId, long totalCount, int totalXp){
+        int level = LevelPolicy.levelOf(totalXp);
         return new MyRankingView(
                 null,
                 totalCount,
                 null,
                 userId,
-                LevelPolicy.INITIAL_LEVEL,
-                0,
-                CharacterTier.of(LevelPolicy.INITIAL_LEVEL)
+                level,
+                totalXp,
+                CharacterTier.of(level)
         );
     }
 

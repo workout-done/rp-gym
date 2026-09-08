@@ -62,8 +62,8 @@ public class RankingRebuildJob {
 }
 /**
  * 이 코드는 wallets이 생기면 SQL 한번으로 바꿔야함.
- * 사용자마다 XpClient 를 호출하는 형태로 두었다 — 지금 MockXpClient 로 동작하고,
- * WalletXpClient 주석을 풀면 그대로 실제 값으로 바뀐다. 다만 N 번 호출이라 느리다.
+ * 사용자마다 XpClient 를 호출하는 형태로 두었다 — 지금은 rpgym.xp.source=mock 이라 MockXpClient 가 응답하고,
+ * wallets 어댑터로 갈아끼우면 그대로 실제 값이 된다. 다만 N 번 호출이라 느리다.
  *
  * SELECT c.user_id, c.level, COALESCE(w.xp, 0) AS total_xp
  *   FROM characters c

@@ -1,10 +1,10 @@
 package com.workoutdone.rpgym.game.ranking.application;
 
+import com.workoutdone.rpgym.game.character.domain.XpClient;
 import com.workoutdone.rpgym.game.ranking.domain.RankingStore;
 import com.workoutdone.rpgym.game.ranking.domain.ScoredMember;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,6 +19,7 @@ public class RankingQueryService implements RankingQueryUseCase{
     private static final int MAX_SIZE = 100;
 
     private final RankingStore rankingStore;
+    private final XpClient xpClient;
 
     @Override
     public RankingPageView getRankings(int page, int size){
@@ -48,9 +49,10 @@ public class RankingQueryService implements RankingQueryUseCase{
         long totalCount = rankingStore.size();
         Optional<Double> score = rankingStore.findScore(userId);
 
-        // 아직 XP 를 받지 못한 사용자 — 404 가 아니라 기본값 200
+        // ZSET 에 없는 사용자 — 404 가 아니라 기본값 200.
+        // level/totalXp 는 XP 원본에서 읽는다. 훅이 늦어도 /characters/me 와 같은 값이 나가야 한다.
         if (score.isEmpty()){
-            return MyRankingView.notRanked(userId, totalCount);
+            return MyRankingView.notRanked(userId, totalCount, xpClient.findTotalXp(userId));
         }
 
         long rank = rankingStore.countHigherThan(score.get()) + 1;

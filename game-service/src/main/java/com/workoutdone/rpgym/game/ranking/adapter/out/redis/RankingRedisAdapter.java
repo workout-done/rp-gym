@@ -41,10 +41,10 @@ public class RankingRedisAdapter implements RankingStore {
 
     @Override
     public long countHigherThan(double score){
-        //ZREVRANK를 쓰지않는다.
-        //정렬된 인덱스를 주기 때문에 동점자가 15등 16등으로 갈리고
-        //동점자에게 같은 순위를 주는 전체 랭킹결과가 어늣난다.
-        //score가 항상 정수라 하한을 score + 1로 주면 "나보다 높은사람"을 정확히 셀수있기때문.
+        //ZREVRANK 를 쓰지 않는다.
+        //정렬된 인덱스를 주기 때문에 동점자가 15등 16등으로 갈려서,
+        //동점자에게 같은 순위를 주는 전체 랭킹 결과와 어긋난다.
+        //score 가 항상 정수라 하한을 score + 1 로 주면 "나보다 높은 사람"을 정확히 셀 수 있다.
 
         return nvl(zset().count(KEY, score + 1, Double.POSITIVE_INFINITY));
     }

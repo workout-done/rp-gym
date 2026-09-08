@@ -2,7 +2,7 @@ package com.workoutdone.rpgym.game.ranking.in.web;
 
 import com.workoutdone.rpgym.common.exception.GlobalExceptionHandler;
 import com.workoutdone.rpgym.game.character.domain.CharacterTier;
-import com.workoutdone.rpgym.game.character.exception.GameExceptionHandler;
+import com.workoutdone.rpgym.game.exception.GameExceptionHandler;
 import com.workoutdone.rpgym.game.ranking.adapter.in.web.RankingController;
 import com.workoutdone.rpgym.game.ranking.application.MyRankingView;
 import com.workoutdone.rpgym.game.ranking.application.RankingEntryView;
@@ -79,7 +79,7 @@ class RankingControllerTest {
     void notRankedUser() throws Exception {
         UUID userId = UUID.randomUUID();
         given(rankingQueryUseCase.getMyRanking(any()))
-                .willReturn(MyRankingView.notRanked(userId, 137));
+                .willReturn(MyRankingView.notRanked(userId, 137, 0));
 
         mockMvc.perform(get(RANKINGS_URL + "/me").header("X-User-Id", userId.toString()))
                 .andExpect(status().isOk())

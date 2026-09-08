@@ -16,11 +16,7 @@ public interface CharacterRepository extends JpaRepository<Character, UUID> {
 
     Optional<Character> findByUserId(UUID userId);
 
-    boolean existsByUserId(UUID userId);
-
-
-
-    //캐릭터가 없ㄹ으면 만들고 있으면 레벨만 갱신
+    //캐릭터가 없으면 만들고 있으면 레벨만 갱신
     @Modifying
     @Query(value = """
             INSERT INTO game_service.characters (id, user_id, level, created_at, updated_at)

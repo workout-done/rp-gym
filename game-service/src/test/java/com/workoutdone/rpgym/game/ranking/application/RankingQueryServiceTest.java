@@ -1,5 +1,6 @@
 package com.workoutdone.rpgym.game.ranking.application;
 
+import com.workoutdone.rpgym.game.character.domain.XpClient;
 import com.workoutdone.rpgym.game.ranking.domain.RankingScore;
 import com.workoutdone.rpgym.game.character.domain.CharacterTier;
 import com.workoutdone.rpgym.game.ranking.FakeRankingStore;
@@ -17,12 +18,15 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class RankingQueryServiceTest {
 
     private FakeRankingStore rankingStore;
+    private int stubbedXp;
     private RankingQueryService sut;
 
     @BeforeEach
     void setUp() {
         rankingStore = new FakeRankingStore();
-        sut = new RankingQueryService(rankingStore);
+        stubbedXp = 0;
+        XpClient xpClient = userId -> stubbedXp;
+        sut = new RankingQueryService(rankingStore, xpClient);
     }
 
     @DisplayName("동점자는 같은 순위를 받고 다음 순위는 건너뛴다")
@@ -138,6 +142,20 @@ class RankingQueryServiceTest {
         assertThat(view.totalXp()).isZero();
         assertThat(view.tier()).isEqualTo(CharacterTier.BRONZE);
         assertThat(view.totalCount()).isEqualTo(1L);
+    }
+
+    @DisplayName("ZSET 에 없어도 XP 원본 값을 그대로 돌려준다 — /characters/me 와 어긋나지 않는다")
+    @Test
+    void notRankedUserStillReportsRealXp() {
+        putAll(900);
+        stubbedXp = 250;
+
+        MyRankingView view = sut.getMyRanking(UUID.randomUUID());
+
+        assertThat(view.rank()).isNull();          // 랭킹 집계에는 아직 없다
+        assertThat(view.level()).isEqualTo(3);     // 그래도 XP 는 보인다
+        assertThat(view.totalXp()).isEqualTo(250);
+        assertThat(view.tier()).isEqualTo(CharacterTier.BRONZE);
     }
 
     private void putAll(int... levels) {
