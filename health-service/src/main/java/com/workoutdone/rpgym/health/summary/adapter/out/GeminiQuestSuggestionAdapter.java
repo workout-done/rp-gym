@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.workoutdone.rpgym.health.summary.application.QuestSuggestionAiPort;
 import com.workoutdone.rpgym.health.summary.domain.MetricType;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
@@ -27,13 +28,23 @@ public class GeminiQuestSuggestionAdapter implements QuestSuggestionAiPort {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public GeminiQuestSuggestionAdapter(RestClient.Builder restClientBuilder,
-                                        @Value("${GEMINI_API_KEY}") String apiKey) {
-        this.restClient = restClientBuilder.build();
+                                        @Value("${GEMINI_API_KEY:}") String apiKey) {
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(3000);
+        requestFactory.setReadTimeout(3000);
+
+        this.restClient = restClientBuilder
+                .requestFactory(requestFactory)
+                .build();
         this.apiKey = apiKey;
     }
 
     @Override
     public String generateTitle(MetricType metricType, int shortageValue) {
+        if (apiKey.isBlank()) {
+            throw new IllegalStateException("GEMINI_API_KEY가 설정되지 않았습니다.");
+        }
+
         String metricLabel = switch (metricType) {
             case STEPS -> "걸음 수";
             case ACTIVE_MINUTES -> "활동 시간(분)";

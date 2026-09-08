@@ -61,6 +61,16 @@ spring:
       # 날짜/시각을 epoch 숫자가 아닌 ISO-8601 문자열로 직렬화
       write-dates-as-timestamps: false
 
+  cloud:
+    openfeign:
+      client:
+        config:
+          default:
+            # User Service 호출이 sync() 트랜잭션 안에서 일어나므로,
+            # 응답이 늦으면 DB 커넥션을 오래 붙잡는다. 짧게 끊고 fallback으로 넘어간다.
+            connect-timeout: 2000
+            read-timeout: 3000
+
 rpgym:
   outbox:
     # PENDING 폴링 주기 (ms)

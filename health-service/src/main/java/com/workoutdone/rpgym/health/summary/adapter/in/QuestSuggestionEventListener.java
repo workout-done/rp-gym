@@ -4,6 +4,7 @@ import com.workoutdone.rpgym.health.outbox.application.EventOutboxPort;
 import com.workoutdone.rpgym.health.outbox.domain.HealthEventType;
 import com.workoutdone.rpgym.health.summary.application.DeficientGoalDetectedEvent;
 import com.workoutdone.rpgym.health.summary.application.QuestSuggestionAiPort;
+import com.workoutdone.rpgym.health.summary.application.event.QuestSuggestedPayload;
 import com.workoutdone.rpgym.health.summary.domain.MetricType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,8 +21,7 @@ import java.util.UUID;
  *
  * 일반 @EventListener를 사용한다 (AFTER_COMMIT 아님).
  * EventOutboxPort.append()는 도메인 저장과 같은 트랜잭션 안에서 호출해야 하므로
- * (EventOutboxPort 문서 참조), HealthSummarySyncService.sync()의 트랜잭션이
- * 아직 열려 있는 상태에서 동기로 처리한다.
+ * HealthSummarySyncService.sync()의 트랜잭션이 아직 열려 있는 상태에서 동기로 처리한다.
  *
  * 트레이드오프: AI 호출(및 재시도)이 끝날 때까지 sync() 응답이 지연된다.
  */
@@ -58,11 +58,14 @@ public class QuestSuggestionEventListener {
             title = resolveFallbackTitle(metricType);
         }
 
+        // eventId: outbox/Kafka 계층의 멱등 처리용 식별자
+        // suggestionId: 도메인 상 Quest 제안 자체의 식별자 (Game Service가 이 값으로 Quest를 식별)
         UUID eventId = UUID.randomUUID();
+        UUID suggestionId = UUID.randomUUID();
         String dedupKey = "QUEST_SUGGESTED:%s:%s".formatted(event.userId(), event.measuredAt());
 
         QuestSuggestedPayload payload = new QuestSuggestedPayload(
-                eventId,
+                suggestionId,
                 event.activityDate(),
                 event.measuredAt(),
                 title,

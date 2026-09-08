@@ -1,4 +1,4 @@
-package com.workoutdone.rpgym.health.summary.adapter.in;
+package com.workoutdone.rpgym.health.summary.application.event;
 
 import java.time.Instant;
 import java.time.LocalDate;

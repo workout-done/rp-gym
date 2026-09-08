@@ -1,17 +1,21 @@
 package com.workoutdone.rpgym.health.summary.application;
 
 import com.workoutdone.rpgym.health.activity.application.SyncedActivity;
+import com.workoutdone.rpgym.health.summary.adapter.out.UserHealthContextResponse;
+import com.workoutdone.rpgym.health.summary.adapter.out.UserServiceClient;
 import com.workoutdone.rpgym.health.summary.domain.DailyGoalProgress;
 import com.workoutdone.rpgym.health.summary.domain.DailyGoalProgressRepository;
 import com.workoutdone.rpgym.health.summary.domain.DailyHealthSummary;
 import com.workoutdone.rpgym.health.summary.domain.DailyHealthSummaryRepository;
 import com.workoutdone.rpgym.health.summary.domain.MetricType;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Comparator;
@@ -19,6 +23,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class HealthSummarySyncService {
@@ -26,13 +31,12 @@ public class HealthSummarySyncService {
     private final DailyHealthSummaryRepository summaryRepository;
     private final DailyGoalProgressRepository progressRepository;
     private final ApplicationEventPublisher eventPublisher;
-    // TODO: User Service health-contexts 조회 클라이언트 (다음 작업)
+    private final UserServiceClient userServiceClient;
 
     private static final BigDecimal DEFAULT_STEP_GOAL = BigDecimal.valueOf(5000);
     private static final BigDecimal DEFAULT_ACTIVE_MINUTES_GOAL = BigDecimal.valueOf(60);
     private static final BigDecimal DEFAULT_ACTIVE_CALORIES_GOAL = BigDecimal.valueOf(300);
 
-    // shortage 동률일 때 우선순위 (STEPS > ACTIVE_MINUTES > ACTIVE_CALORIES)
     private static final List<MetricType> METRIC_PRIORITY = List.of(
             MetricType.STEPS, MetricType.ACTIVE_MINUTES, MetricType.ACTIVE_CALORIES
     );
@@ -83,15 +87,21 @@ public class HealthSummarySyncService {
             summary.markAllGoalsAchieved(now);
             summaryRepository.save(summary);
         } else {
-            publishDeficientGoalEventIfNeeded(summary, syncedActivity.activityId(), progresses);
+            publishDeficientGoalEventIfNeeded(summary, syncedActivity.activityId(), progresses, now);
         }
     }
 
-    private void publishDeficientGoalEventIfNeeded(DailyHealthSummary summary, UUID activityId, List<DailyGoalProgress> progresses) {
+    private void publishDeficientGoalEventIfNeeded(DailyHealthSummary summary, UUID activityId,
+                                                   List<DailyGoalProgress> progresses, Instant now) {
+        if (!summary.markQuestSuggested(now)) {
+            return;
+        }
+        summaryRepository.save(summary);
+
         Optional<DailyGoalProgress> mostDeficient = progresses.stream()
                 .filter(p -> !p.isAchieved())
                 .max(Comparator
-                        .comparing(DailyGoalProgress::getShortageValue)
+                        .comparing(this::achievementDeficitRatio)
                         .thenComparing(p -> METRIC_PRIORITY.indexOf(p.getMetricType()), Comparator.reverseOrder())
                 );
 
@@ -106,13 +116,40 @@ public class HealthSummarySyncService {
         )));
     }
 
+    private BigDecimal achievementDeficitRatio(DailyGoalProgress progress) {
+        BigDecimal targetValue = progress.getTargetValue();
+        if (targetValue.signum() == 0) {
+            return BigDecimal.ZERO;
+        }
+        return progress.getShortageValue().divide(targetValue, 4, RoundingMode.HALF_UP);
+    }
+
     private List<DailyGoalProgress> createInitialProgresses(DailyHealthSummary summary, UUID userId, LocalDate activityDate) {
+        UserHealthContextResponse.DailyGoal dailyGoal = fetchDailyGoal(userId);
+
+        BigDecimal stepGoal = dailyGoal != null && dailyGoal.stepGoal() != null
+                ? BigDecimal.valueOf(dailyGoal.stepGoal()) : DEFAULT_STEP_GOAL;
+        BigDecimal activeMinutesGoal = dailyGoal != null && dailyGoal.activeMinutesGoal() != null
+                ? BigDecimal.valueOf(dailyGoal.activeMinutesGoal()) : DEFAULT_ACTIVE_MINUTES_GOAL;
+        BigDecimal activeCaloriesGoal = dailyGoal != null && dailyGoal.activeCaloriesGoal() != null
+                ? BigDecimal.valueOf(dailyGoal.activeCaloriesGoal()) : DEFAULT_ACTIVE_CALORIES_GOAL;
+
         List<DailyGoalProgress> progresses = List.of(
-                DailyGoalProgress.createFor(summary.getSummaryId(), userId, activityDate, MetricType.STEPS, DEFAULT_STEP_GOAL),
-                DailyGoalProgress.createFor(summary.getSummaryId(), userId, activityDate, MetricType.ACTIVE_MINUTES, DEFAULT_ACTIVE_MINUTES_GOAL),
-                DailyGoalProgress.createFor(summary.getSummaryId(), userId, activityDate, MetricType.ACTIVE_CALORIES, DEFAULT_ACTIVE_CALORIES_GOAL)
+                DailyGoalProgress.createFor(summary.getSummaryId(), userId, activityDate, MetricType.STEPS, stepGoal),
+                DailyGoalProgress.createFor(summary.getSummaryId(), userId, activityDate, MetricType.ACTIVE_MINUTES, activeMinutesGoal),
+                DailyGoalProgress.createFor(summary.getSummaryId(), userId, activityDate, MetricType.ACTIVE_CALORIES, activeCaloriesGoal)
         );
         return progressRepository.saveAll(progresses);
+    }
+
+    private UserHealthContextResponse.DailyGoal fetchDailyGoal(UUID userId) {
+        try {
+            UserHealthContextResponse response = userServiceClient.getHealthContext(userId);
+            return response.dailyGoal();
+        } catch (Exception e) {
+            log.warn("User Service health-context 조회 실패, 기본값 사용. userId={}", userId, e);
+            return null;
+        }
     }
 
     private BigDecimal resolveAchievedValue(MetricType metricType, int steps, int activeMinutes, int activeCalories) {
