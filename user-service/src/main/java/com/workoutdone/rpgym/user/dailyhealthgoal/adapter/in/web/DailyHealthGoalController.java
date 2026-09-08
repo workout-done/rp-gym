@@ -44,7 +44,7 @@ public class DailyHealthGoalController {
                 .body(ResDailyHealthGoalDto.from(result));
     }
 
-    //TO-DO : 게이트웨이에서 JWT 유효성 검사 로직 추가되면 해당 메서드 부분 삭제할 예정
+    ////TO-DO: 게이트웨이에서 JWT 유효성 및 요청헤더 유효성 검증 로직 추가되면 해당 메서드는 삭제 예정
     // 게이트웨이를 거치지 않아 X-User-Id가 없거나 UUID 형식이 아니면 인증 안 된 요청으로 취급
     private UUID resolveUserId(String userIdHeader) {
         if (userIdHeader == null || userIdHeader.isBlank()) {
