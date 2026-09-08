@@ -2,9 +2,12 @@ package com.workoutdone.rpgym.health.exception;
 
 import com.workoutdone.rpgym.common.exception.CommonErrorCode;
 import com.workoutdone.rpgym.common.response.ErrorResponse;
+import com.workoutdone.rpgym.health.activity.exception.ActivityErrorCode;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -21,6 +24,7 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
  */
 @Order(Ordered.HIGHEST_PRECEDENCE)
 @RestControllerAdvice
+@Slf4j
 public class HealthExceptionHandler {
 
     /**
@@ -45,6 +49,25 @@ public class HealthExceptionHandler {
             return build(CommonErrorCode.UNAUTHORIZED, "유효하지 않은 인증 정보입니다.");
         }
         return build(CommonErrorCode.INVALID_INPUT, e.getName() + " 값이 올바르지 않습니다.");
+    }
+
+    /**
+     * 동시 요청 경합으로 유니크 제약을 위반한 경우.
+     *
+     * <p>동기화는 (userId, measuredAt) 기준으로 멱등이라, 같은 건이 동시에 두 번 들어오면
+     * 한쪽은 조회-후-삽입 사이에서 상대를 못 보고 INSERT까지 진행한다.
+     * uk_health_activities_user_measured / uk_health_activity_outbox_dedup이 최종 방어라
+     * 데이터 정합성은 깨지지 않지만, 제약 위반이 그대로 올라가면 500이 된다.
+     *
+     * <p>이미 저장된 건이므로 클라이언트가 재시도할 이유가 없다. 409로 응답해
+     * "이미 반영됨"을 알리고, 서버 오류 로그로 쌓이지 않게 한다.
+     */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponse> handleDuplicate(DataIntegrityViolationException e) {
+        log.warn("동시 요청 경합으로 중복 저장이 차단됐다.", e);
+        ActivityErrorCode code = ActivityErrorCode.DUPLICATE_SYNC;
+        return ResponseEntity.status(code.getStatus())
+                .body(ErrorResponse.of(code.getCode(), code.getMessage(), traceId()));
     }
 
     private ResponseEntity<ErrorResponse> build(CommonErrorCode errorCode, String message) {
