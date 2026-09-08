@@ -12,7 +12,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -24,7 +23,6 @@ public class HealthSummarySyncService {
     private final DailyGoalProgressRepository progressRepository;
     // TODO: User Service health-contexts 조회 클라이언트 (다음 작업)
 
-    // HealthSummarySyncService 클래스 상단에 추가
     private static final BigDecimal DEFAULT_STEP_GOAL = BigDecimal.valueOf(5000);
     private static final BigDecimal DEFAULT_ACTIVE_MINUTES_GOAL = BigDecimal.valueOf(60);
     private static final BigDecimal DEFAULT_ACTIVE_CALORIES_GOAL = BigDecimal.valueOf(300);
@@ -35,9 +33,15 @@ public class HealthSummarySyncService {
 
         Instant now = Instant.now();
 
-        DailyHealthSummary summary = summaryRepository
-                .findByUserIdAndActivityDate(userId, activityDate)
-                .orElseGet(() -> createInitialSummaryAndProgress(userId, activityDate, now));
+        DailyHealthSummary summary = summaryRepository.findByUserIdAndActivityDate(userId, activityDate).orElse(null);
+
+        List<DailyGoalProgress> progresses;
+        if (summary == null) {
+            summary = createSummary(userId, activityDate, now);
+            progresses = createInitialProgresses(summary, userId, activityDate);
+        } else {
+            progresses = progressRepository.findBySummaryId(summary.getSummaryId());
+        }
 
         boolean applied = summary.applySync(steps, activeMinutes, activeCalories, measuredAt, now);
         if (!applied) {
@@ -45,7 +49,6 @@ public class HealthSummarySyncService {
         }
         summaryRepository.save(summary);
 
-        List<DailyGoalProgress> progresses = progressRepository.findBySummaryId(summary.getSummaryId());
         for (DailyGoalProgress progress : progresses) {
             BigDecimal achievedValue = resolveAchievedValue(progress.getMetricType(), steps, activeMinutes, activeCalories);
             progress.updateAchieved(achievedValue);
@@ -60,16 +63,18 @@ public class HealthSummarySyncService {
         }
     }
 
-    private DailyHealthSummary createInitialSummaryAndProgress(UUID userId, LocalDate activityDate, Instant now) {
+    private DailyHealthSummary createSummary(UUID userId, LocalDate activityDate, Instant now) {
         DailyHealthSummary summary = DailyHealthSummary.createFor(userId, activityDate, now);
-        summaryRepository.save(summary);
+        return summaryRepository.save(summary);
+    }
 
-        progressRepository.saveAll(List.of(
+    private List<DailyGoalProgress> createInitialProgresses(DailyHealthSummary summary, UUID userId, LocalDate activityDate) {
+        List<DailyGoalProgress> progresses = List.of(
                 DailyGoalProgress.createFor(summary.getSummaryId(), userId, activityDate, MetricType.STEPS, DEFAULT_STEP_GOAL),
                 DailyGoalProgress.createFor(summary.getSummaryId(), userId, activityDate, MetricType.ACTIVE_MINUTES, DEFAULT_ACTIVE_MINUTES_GOAL),
                 DailyGoalProgress.createFor(summary.getSummaryId(), userId, activityDate, MetricType.ACTIVE_CALORIES, DEFAULT_ACTIVE_CALORIES_GOAL)
-        ));
-        return summary;
+        );
+        return progressRepository.saveAll(progresses);
     }
 
     private BigDecimal resolveAchievedValue(MetricType metricType, int steps, int activeMinutes, int activeCalories) {
