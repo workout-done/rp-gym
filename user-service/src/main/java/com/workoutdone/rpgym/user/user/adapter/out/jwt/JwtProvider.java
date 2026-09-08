@@ -1,13 +1,13 @@
 package com.workoutdone.rpgym.user.user.adapter.out.jwt;
 
+import com.workoutdone.rpgym.common.jwt.JwtClaimConstants;
+import com.workoutdone.rpgym.common.jwt.JwtSecretKeyFactory;
 import com.workoutdone.rpgym.user.user.domain.UserRole;
 import io.jsonwebtoken.Jwts;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
-import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Date;
 import java.util.UUID;
@@ -22,7 +22,8 @@ public class JwtProvider {
             @Value("${jwt.secret}") String secret,
             @Value("${jwt.access-token-expiry-seconds}") long accessTokenExpirySeconds
     ) {
-        this.secretKey = new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
+        //[SecretKey 생성 로직 공통화]
+        this.secretKey = JwtSecretKeyFactory.create(secret);
         this.accessTokenExpirySeconds = accessTokenExpirySeconds;
     }
 
@@ -35,7 +36,8 @@ public class JwtProvider {
 
         return Jwts.builder()
                 .subject(userId.toString())
-                .claim("role", role.name())
+                //[JWT Claim 이름 공통화]
+                .claim(JwtClaimConstants.ROLE, role.name())
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(expiry))
                 .signWith(secretKey, Jwts.SIG.HS256)
