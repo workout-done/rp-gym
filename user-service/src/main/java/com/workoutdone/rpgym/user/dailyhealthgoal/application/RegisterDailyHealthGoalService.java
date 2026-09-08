@@ -17,7 +17,7 @@ import java.util.UUID;
 @Transactional
 public class RegisterDailyHealthGoalService {
 
-    // V2__create_user_daily_health_goals_table.sql에 정의된 부분 유니크 인덱스 이름과 동일해야 한다.
+    // V3__create_user_daily_health_goals_table.sql에 정의된 부분 유니크 인덱스 이름과 동일해야 한다.
     private static final String USER_ID_UNIQUE_CONSTRAINT = "ux_user_daily_health_goals_user_id";
 
     private final DailyHealthGoalRepository dailyHealthGoalRepository;
