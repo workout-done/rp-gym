@@ -11,6 +11,7 @@ import com.workoutdone.rpgym.user.user.application.LoginService;
 import com.workoutdone.rpgym.user.user.application.SignUpCommand;
 import com.workoutdone.rpgym.user.user.application.SignUpResult;
 import com.workoutdone.rpgym.user.user.application.SignUpService;
+import com.workoutdone.rpgym.user.user.application.UpdateMyAccountService;
 import com.workoutdone.rpgym.user.user.domain.UserRole;
 import com.workoutdone.rpgym.user.user.domain.UserStatus;
 import com.workoutdone.rpgym.user.user.domain.UserErrorCode;
@@ -54,9 +55,12 @@ class UserControllerTest {
     @MockitoBean
     private LoginService loginService;
 
-    // UserController가 GetMyAccountService에도 의존하므로, 컨텍스트 로딩을 위해 Mock으로 등록해야 한다.
+    // UserController가 GetMyAccountService/UpdateMyAccountService에도 의존하므로, 컨텍스트 로딩을 위해 Mock으로 등록해야 한다.
     @MockitoBean
     private GetMyAccountService getMyAccountService;
+
+    @MockitoBean
+    private UpdateMyAccountService updateMyAccountService;
 
     private ReqSignUpDto validRequest() {
         return ReqSignUpDto.builder()
