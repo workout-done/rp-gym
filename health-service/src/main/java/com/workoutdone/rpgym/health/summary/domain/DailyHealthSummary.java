@@ -76,7 +76,7 @@ public class DailyHealthSummary extends BaseCreatedUpdatedEntity {
     }
 
     public boolean applySync(int steps, int activeMinutes, int activeCalories, Instant measuredAt, Instant calculatedAt) {
-        if (this.lastSyncedAt != null && measuredAt.isBefore(this.lastSyncedAt)) {
+        if (this.lastSyncedAt != null && !measuredAt.isAfter(this.lastSyncedAt)) {
             return false;
         }
         this.totalSteps = steps;
