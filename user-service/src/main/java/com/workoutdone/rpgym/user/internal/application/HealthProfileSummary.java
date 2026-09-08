@@ -1,5 +1,6 @@
 package com.workoutdone.rpgym.user.internal.application;
 
+import com.workoutdone.rpgym.user.healthprofile.domain.HealthProfile;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -15,4 +16,11 @@ public class HealthProfileSummary {
 
     private BigDecimal height;
     private BigDecimal weight;
+
+    public static HealthProfileSummary from(HealthProfile healthProfile) {
+        return HealthProfileSummary.builder()
+                .height(healthProfile.getHeight())
+                .weight(healthProfile.getWeight())
+                .build();
+    }
 }
