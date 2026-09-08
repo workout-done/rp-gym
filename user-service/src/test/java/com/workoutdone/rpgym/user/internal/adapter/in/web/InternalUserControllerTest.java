@@ -1,8 +1,8 @@
-package com.workoutdone.rpgym.user.user.adapter.in.web;
+package com.workoutdone.rpgym.user.internal.adapter.in.web;
 
 import com.workoutdone.rpgym.common.exception.BaseException;
-import com.workoutdone.rpgym.user.user.application.GetInternalUserInfoResult;
-import com.workoutdone.rpgym.user.user.application.GetInternalUserInfoService;
+import com.workoutdone.rpgym.user.internal.application.GetInternalUserInfoResult;
+import com.workoutdone.rpgym.user.internal.application.GetInternalUserInfoService;
 import com.workoutdone.rpgym.user.user.domain.UserErrorCode;
 import com.workoutdone.rpgym.user.user.domain.UserRole;
 import com.workoutdone.rpgym.user.user.domain.UserStatus;

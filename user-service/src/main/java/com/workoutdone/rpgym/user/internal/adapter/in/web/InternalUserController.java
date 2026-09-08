@@ -1,8 +1,8 @@
-package com.workoutdone.rpgym.user.user.adapter.in.web;
+package com.workoutdone.rpgym.user.internal.adapter.in.web;
 
-import com.workoutdone.rpgym.user.user.adapter.in.web.dto.ResInternalUserInfoDto;
-import com.workoutdone.rpgym.user.user.application.GetInternalUserInfoResult;
-import com.workoutdone.rpgym.user.user.application.GetInternalUserInfoService;
+import com.workoutdone.rpgym.user.internal.adapter.in.web.dto.ResInternalUserInfoDto;
+import com.workoutdone.rpgym.user.internal.application.GetInternalUserInfoResult;
+import com.workoutdone.rpgym.user.internal.application.GetInternalUserInfoService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;

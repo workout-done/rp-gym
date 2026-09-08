@@ -1,4 +1,4 @@
-package com.workoutdone.rpgym.user.user.application;
+package com.workoutdone.rpgym.user.internal.application;
 
 import com.workoutdone.rpgym.common.exception.BaseException;
 import com.workoutdone.rpgym.user.user.domain.User;

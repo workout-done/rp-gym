@@ -1,6 +1,6 @@
-package com.workoutdone.rpgym.user.user.adapter.in.web.dto;
+package com.workoutdone.rpgym.user.internal.adapter.in.web.dto;
 
-import com.workoutdone.rpgym.user.user.application.GetInternalUserInfoResult;
+import com.workoutdone.rpgym.user.internal.application.GetInternalUserInfoResult;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
