@@ -30,7 +30,7 @@ public enum UserErrorCode implements ErrorCode {
 
     ACCOUNT_SUSPENDED(
             "ACCOUNT_SUSPENDED",
-            HttpStatus.CONFLICT,
+            HttpStatus.FORBIDDEN,
             "정지된 계정입니다."
     ),
 
