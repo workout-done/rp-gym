@@ -79,6 +79,9 @@ public class DailyHealthSummary extends BaseCreatedUpdatedEntity {
         if (this.lastSyncedAt != null && measuredAt.isBefore(this.lastSyncedAt)) {
             return false;
         }
+        if (measuredAt.equals(this.lastSyncedAt) && hasSameSnapshot(steps, activeMinutes, activeCalories)) {
+            return false;
+        }
         this.totalSteps = steps;
         this.totalActiveMinutes = activeMinutes;
         this.totalActiveCalories = activeCalories;
@@ -94,5 +97,11 @@ public class DailyHealthSummary extends BaseCreatedUpdatedEntity {
         this.allGoalsAchieved = true;
         this.achievedAt = now;
         return true;
+    }
+
+    private boolean hasSameSnapshot(int steps, int activeMinutes, int activeCalories) {
+        return this.totalSteps == steps
+                && this.totalActiveMinutes == activeMinutes
+                && this.totalActiveCalories == activeCalories;
     }
 }
