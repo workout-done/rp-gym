@@ -27,11 +27,20 @@ spring:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
 
   jpa:
-    # ddl-auto: validate 는 지금 켤 수 없다.
-    # Quest 엔티티가 game_service.quests 를 선언하는데 그 테이블을 만드는 마이그레이션이
-    # 아직 없어서(퀘스트 담당 범위) validate 가 부팅을 막는다.
-    # quests DDL 이 정리되면 별도 PR 로 켠다.
+    hibernate:
+      # Flyway 가 스키마를 관리하므로 Hibernate 는 엔티티-스키마 일치 여부만 검증한다.
+      # user-service / health-service 와 동일한 설정이다.
+      #
+      # ⚠ #40(퀘스트/XP)이 먼저 머지되어야 한다.
+      #   quests / wallets / xp_ledgers / outbox_events 를 만드는 마이그레이션이 거기 있어서,
+      #   그것 없이 이 PR 만 머지하면 validate 가 부팅을 막는다. (PR #38 리뷰 합의)
+      ddl-auto: validate
     open-in-view: false
+
+  flyway:
+    # game-service 가 소유한 스키마. 이 설정이 켜지면 Flyway 가 search_path 를 여기로 옮기므로
+    # 마이그레이션의 수식어 없는 CREATE TABLE 이 전부 game_service 에 생성된다.
+    schemas: game_service
 
 
 eureka:

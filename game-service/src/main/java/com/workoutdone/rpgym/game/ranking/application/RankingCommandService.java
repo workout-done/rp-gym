@@ -8,6 +8,7 @@ import com.workoutdone.rpgym.game.ranking.domain.RankingStore;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
@@ -22,7 +23,7 @@ public class RankingCommandService implements RankingService{
     private final RankingStore rankingStore;
 
     @Override
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void onXpChanged(UUID userId){
         if (userId == null){
             throw new IllegalArgumentException("userId는 필수입니다.");
