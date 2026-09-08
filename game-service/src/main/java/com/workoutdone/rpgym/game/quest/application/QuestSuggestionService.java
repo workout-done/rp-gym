@@ -54,7 +54,8 @@ public class QuestSuggestionService {
         if (stored.isEmpty()) {
             return rejected(SuggestionOutcome.SNAPSHOT_MISSING, command);
         }
-
+        // baseLine 조달 -> 저장된 엔티티가 snapshot과 같은 5개 필드를 가짐
+        // 스냅샷의 내부 함수가 3지표 중 하나를 꺼낸다.
         Snapshot baseline = stored.get().toSnapshot();
         if (!baseline.measuredAt().equals(command.basedOnMeasuredAt())) {
             return rejected(SuggestionOutcome.SNAPSHOT_MISMATCH, command);

@@ -33,6 +33,7 @@ public class QuestProgressService {
 
     @Transactional
     public Optional<ApplyResult> apply(UUID userId, Snapshot snapshot) {
+        // 활성 Quest 조회보다 먼저 저장해서 Quest가 없어도 누적값을 저장한다.
         storeLatest(userId, snapshot);
 
         Optional<Quest> active = questRepository.findActiveByUserId(userId, snapshot.measuredAt());

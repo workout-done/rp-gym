@@ -48,6 +48,8 @@ public class UserLatestSnapshot extends BaseCreatedUpdatedEntity {
     }
 
     public boolean applyIfNewer(Snapshot snapshot) {
+        // suggest에 근거한 스냅샷이 아직 안왔거나 순서 역전됫을때
+        // 토픽이 갈리면 대조가 실패함으로 이벤트 3개를 한 토픽에 묶은 이유
         if (!snapshot.measuredAt().isAfter(measuredAt)) {
             return false;
         }
