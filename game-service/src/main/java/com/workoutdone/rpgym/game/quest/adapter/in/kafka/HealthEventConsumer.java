@@ -48,7 +48,7 @@ public class HealthEventConsumer {
     private final QuestProgressService questProgressService;
     private final QuestSuggestionService questSuggestionService;
 
-    @KafkaListener(topics = "${app.kafka.health-events-topic}")
+    @KafkaListener(topics = "${rpgym.kafka.health-events-topic}")
     public void consume(String message) {
         HealthEventEnvelope envelope;
         try {
