@@ -64,4 +64,17 @@ public class User extends BaseCreatedUpdatedDeletedEntity {
     public static String normalizeEmail(String email) {
         return email == null ? null : email.trim().toLowerCase();
     }
+
+    public void changeNickname(String nickname) {
+        this.nickname = nickname;
+    }
+
+    public void changeSlackId(String slackId) {
+        this.slackId = slackId;
+    }
+
+    // password는 이미 해시된 값을 받는다. 평문 해싱은 application 계층(PasswordEncoder)의 책임이다.
+    public void changePassword(String encodedPassword) {
+        this.password = encodedPassword;
+    }
 }
