@@ -161,6 +161,21 @@ class SignUpServiceTest {
     }
 
     @Test
+    @DisplayName("유니크 제약 위반 예외가 한 단계 더 감싸져 들어와도 EMAIL_DUPLICATED로 변환한다")
+    void signUp_emailUniqueConstraintDeeplyWrapped_convertsToEmailDuplicated() {
+        SignUpCommand command = command();
+        given(userRepository.existsByEmailAndDeletedAtIsNull(command.getEmail())).willReturn(false);
+        given(userRepository.existsByNicknameAndDeletedAtIsNull(command.getNickname())).willReturn(false);
+        given(passwordEncoder.encode(command.getRawPassword())).willReturn("encoded-password");
+        given(userRepository.saveAndFlush(any(User.class)))
+                .willThrow(deeplyWrappedDataIntegrityViolationException("ux_users_email_active"));
+
+        assertThatThrownBy(() -> signUpService.signUp(command))
+                .isInstanceOf(BaseException.class)
+                .satisfies(ex -> assertThat(((BaseException) ex).getErrorCode()).isEqualTo(UserErrorCode.EMAIL_DUPLICATED));
+    }
+
+    @Test
     @DisplayName("예상하지 못한 제약조건 위반이면 변환하지 않고 원래 예외를 그대로 던진다")
     void signUp_unexpectedConstraintViolation_rethrowsOriginalException() {
         SignUpCommand command = command();
@@ -182,5 +197,16 @@ class SignUpServiceTest {
                 constraintName
         );
         return new DataIntegrityViolationException("could not execute statement", cause);
+    }
+
+    // 드라이버/커넥션 풀 등에 의해 ConstraintViolationException이 한 단계 더 감싸져 들어오는 상황을 흉내낸다.
+    private DataIntegrityViolationException deeplyWrappedDataIntegrityViolationException(String constraintName) {
+        ConstraintViolationException cve = new ConstraintViolationException(
+                "duplicate key value violates unique constraint",
+                new SQLException("duplicate key"),
+                constraintName
+        );
+        RuntimeException extraWrapper = new RuntimeException("한 단계 더 감싸진 상황을 흉내냄", cve);
+        return new DataIntegrityViolationException("could not execute statement", extraWrapper);
     }
 }
