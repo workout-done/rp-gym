@@ -14,10 +14,28 @@ public enum CommonErrorCode implements ErrorCode {
             "입력값이 올바르지 않습니다."
     ),
 
+    INVALID_REQUEST(
+            "INVALID_REQUEST",
+            HttpStatus.BAD_REQUEST,
+            "잘못된 요청입니다."
+    ),
+
     INVALID_SORT_FIELD(
             "INVALID_SORT_FIELD",
             HttpStatus.BAD_REQUEST,
             "정렬 필드가 올바르지 않습니다."
+    ),
+
+    METHOD_NOT_ALLOWED(
+            "METHOD_NOT_ALLOWED",
+            HttpStatus.METHOD_NOT_ALLOWED,
+            "지원하지 않는 HTTP 메서드입니다."
+    ),
+
+    UNSUPPORTED_MEDIA_TYPE(
+            "UNSUPPORTED_MEDIA_TYPE",
+            HttpStatus.UNSUPPORTED_MEDIA_TYPE,
+            "지원하지 않는 Content-Type입니다."
     ),
 
     UNAUTHORIZED(
@@ -41,7 +59,7 @@ public enum CommonErrorCode implements ErrorCode {
     SERVICE_UNAVAILABLE(
             "SERVICE_UNAVAILABLE",
             HttpStatus.SERVICE_UNAVAILABLE,
-            "하위 서비스를 사용할 수 없습니다."
+            "서비스를 사용할 수 없습니다."
     ),
 
     INTERNAL_ERROR(

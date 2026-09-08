@@ -87,4 +87,15 @@ public class OutboxEvent extends BaseCreatedEntity {
         this.status = OutboxStatus.PUBLISHED;
         this.publishedAt = publishedAt;
     }
+
+    /**
+     * 발행에 실패했다. 시도 횟수만 올리고 상태는 PENDING으로 남긴다.
+     *
+     * FAILED로 종료하지 않는 이유는 되살릴 경로가 없어지기 때문이다. 발행 실패의 현실적 원인은
+     * 브로커 장애 하나이고 그것은 재시도로 낫는다. PENDING으로 남겨두면 브로커가 살아나는 순간
+     * 다음 폴링이 자동으로 집어 간다 -- 유실이 원리적으로 발생하지 않는다.
+     */
+    public void markRetried() {
+        this.retryCount++;
+    }
 }

@@ -7,8 +7,7 @@ public interface UserRepository {
 
     User save(User user);
 
-    // updatedAt(@LastModifiedDate) 등 auditing 값을 트랜잭션 커밋 시점까지 미루지 않고
-    // 즉시 flush해서 최신 값을 읽어야 할 때 사용
+    // 유니크 제약 위반, updatedAt(@LastModifiedDate) 등 auditing 값을 트랜잭션 커밋 시점이 아니라 이 호출 시점에 바로 확인하기 위해 사용
     User saveAndFlush(User user);
 
     Optional<User> findById(UUID id);
