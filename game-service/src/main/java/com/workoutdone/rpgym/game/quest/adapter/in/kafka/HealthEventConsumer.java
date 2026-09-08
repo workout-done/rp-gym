@@ -1,0 +1,150 @@
+package com.workoutdone.rpgym.game.quest.adapter.in.kafka;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.workoutdone.rpgym.game.quest.adapter.in.kafka.dto.HealthActivitySyncedData;
+import com.workoutdone.rpgym.game.quest.adapter.in.kafka.dto.HealthEventEnvelope;
+import com.workoutdone.rpgym.game.quest.adapter.in.kafka.dto.QuestSuggestedData;
+import com.workoutdone.rpgym.game.quest.application.QuestProgressService;
+import com.workoutdone.rpgym.game.quest.application.QuestSuggestionCommand;
+import com.workoutdone.rpgym.game.quest.application.QuestSuggestionService;
+import com.workoutdone.rpgym.game.quest.application.SuggestionOutcome;
+import com.workoutdone.rpgym.game.quest.domain.vo.ApplyResult;
+import com.workoutdone.rpgym.game.quest.domain.vo.Snapshot;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
+import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.stereotype.Component;
+
+import java.util.Optional;
+
+/**
+ * health.events 토픽 하나에서 3종을 받아 분기한다.
+ *
+ * 이 클래스가 하는 일은 셋뿐이다 -- 역직렬화 / 도메인 타입으로 변환 / 서비스 호출.
+ * 트랜잭션을 열지 않고(경계는 서비스에 있다), 판정을 하지 않는다.
+ *
+ * 특히 HEALTH_ACTIVITY_SYNCED를 "활성 Quest가 있나" 따위로 미리 거르지 않는다.
+ * 그 판단은 QuestProgressService 안에 있고, 여기서 거르면 baseline 조달 설계가 무너진다.
+ *
+ * 예외를 던지느냐 마느냐가 이 클래스의 핵심 결정이다.
+ *   던진다  -> offset 미커밋 -> 재시도. DB 다운 · 낙관적 락 충돌처럼 "다시 하면 되는 것"
+ *   안 던진다 -> 정상 ack.    계약 위반처럼 "몇 번을 해도 같은 결과인 것"
+ * 계약 위반에 예외를 던지면 그 파티션이 영원히 막힌다.
+ */
+@Slf4j
+@Component
+@RequiredArgsConstructor
+public class HealthEventConsumer {
+
+    private static final String HEALTH_ACTIVITY_SYNCED = "HEALTH_ACTIVITY_SYNCED";
+    private static final String QUEST_SUGGESTED = "QUEST_SUGGESTED";
+    private static final String DAILY_GOAL_COMPLETED = "DAILY_GOAL_COMPLETED";
+
+    private final ObjectMapper objectMapper;
+    private final QuestProgressService questProgressService;
+    private final QuestSuggestionService questSuggestionService;
+
+    @KafkaListener(topics = "${app.kafka.health-events-topic}")
+    public void consume(String message) {
+        HealthEventEnvelope envelope;
+        try {
+            envelope = objectMapper.readValue(message, HealthEventEnvelope.class);
+        } catch (JsonProcessingException e) {
+            // 재시도해도 같은 문자열이 같은 곳에서 깨진다.
+            log.error("health event 역직렬화 실패. 건너뛴다. message={}", message, e);
+            return;
+        }
+
+        // eventType이 null이면 아래 switch가 NPE를 던지고, 그 NPE는 무한 재시도가 된다.
+        // userId가 null이면 그대로 서비스로 내려가 저장 시점에 터진다. 둘 다 계약 위반이다.
+        if (envelope.eventType() == null || envelope.userId() == null) {
+            log.error("envelope 필수 필드 누락. 건너뛴다. eventType={} userId={}",
+                    envelope.eventType(), envelope.userId());
+            return;
+        }
+
+        // eventId는 여기서만 알 수 있다. 아래 서비스들의 로그에도 붙도록 MDC에 넣는다.
+        MDC.put("eventId", String.valueOf(envelope.eventId()));
+        MDC.put("userId", String.valueOf(envelope.userId()));
+        try {
+            dispatch(envelope);
+        } finally {
+            MDC.remove("eventId");
+            MDC.remove("userId");
+        }
+    }
+
+    private void dispatch(HealthEventEnvelope envelope) {
+        switch (envelope.eventType()) {
+            case HEALTH_ACTIVITY_SYNCED -> applySnapshot(envelope);
+            case QUEST_SUGGESTED -> acceptSuggestion(envelope);
+            // MVP 범위 밖. 소비는 하되 아무것도 하지 않는다 -- 안 받으면 offset이 안 밀린다.
+            case DAILY_GOAL_COMPLETED -> log.debug("DAILY_GOAL_COMPLETED는 MVP 범위 밖이라 무시한다.");
+            default -> log.error("알 수 없는 eventType={}", envelope.eventType());
+        }
+    }
+
+    private void applySnapshot(HealthEventEnvelope envelope) {
+        HealthActivitySyncedData data = convert(envelope.data(), HealthActivitySyncedData.class);
+        if (data == null) {
+            return;
+        }
+        if (data.activityDate() == null || data.measuredAt() == null || data.cumulative() == null) {
+            log.error("HEALTH_ACTIVITY_SYNCED 필수 필드 누락. 건너뛴다. data={}", envelope.data());
+            return;
+        }
+
+        Snapshot snapshot = new Snapshot(
+                data.activityDate(),
+                data.measuredAt().toInstant(),
+                data.cumulative().steps(),
+                data.cumulative().activeMinutes(),
+                data.cumulative().activeCalories()
+        );
+
+        Optional<ApplyResult> result = questProgressService.apply(envelope.userId(), snapshot);
+        log.debug("HEALTH_ACTIVITY_SYNCED 처리 완료. measuredAt={} result={}",
+                snapshot.measuredAt(), result.map(Object::toString).orElse("NO_ACTIVE_QUEST"));
+    }
+
+    private void acceptSuggestion(HealthEventEnvelope envelope) {
+        QuestSuggestedData data = convert(envelope.data(), QuestSuggestedData.class);
+        if (data == null) {
+            return;
+        }
+        if (data.suggestionId() == null || data.activityDate() == null || data.basedOnMeasuredAt() == null) {
+            log.error("QUEST_SUGGESTED 필수 필드 누락. 건너뛴다. data={}", envelope.data());
+            return;
+        }
+
+        SuggestionOutcome outcome = questSuggestionService.accept(new QuestSuggestionCommand(
+                envelope.userId(),
+                data.suggestionId(),
+                data.activityDate(),
+                data.basedOnMeasuredAt().toInstant(),
+                data.title(),
+                data.metric(),
+                data.targetValue()
+        ));
+
+        // 폐기 사유별 로그 레벨은 서비스가 정한다. 여기서는 eventId와의 연결만 남긴다.
+        log.debug("QUEST_SUGGESTED 처리 완료. suggestionId={} outcome={}", data.suggestionId(), outcome);
+    }
+
+    private <T> T convert(JsonNode data, Class<T> type) {
+        if (data == null || data.isNull()) {
+            log.error("data가 비어 있다. 건너뛴다. type={}", type.getSimpleName());
+            return null;
+        }
+        try {
+            return objectMapper.treeToValue(data, type);
+        } catch (JsonProcessingException | IllegalArgumentException e) {
+            log.error("data 변환 실패. 건너뛴다. type={} data={}", type.getSimpleName(), data, e);
+            return null;
+        }
+    }
+}

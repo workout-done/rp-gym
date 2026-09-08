@@ -64,4 +64,10 @@ public class User extends BaseCreatedUpdatedDeletedEntity {
     public static String normalizeEmail(String email) {
         return email == null ? null : email.trim().toLowerCase();
     }
+
+    // 탈퇴(deletedAt 설정)한 계정은 status 컬럼 값과 무관하게 항상 WITHDRAWN으로 취급
+    // 다른 서비스(Health/Game 등)에 사용자 상태를 노출할 때 이 값을 사용
+    public UserStatus getDisplayStatus() {
+        return getDeletedAt() != null ? UserStatus.WITHDRAWN : status;
+    }
 }

@@ -168,7 +168,7 @@ public class Quest extends BaseCreatedUpdatedEntity {
         }
 
         // 4. 달성분 계산
-        // Quest 수락 시점의 누적값을 빼야 아침에 이미 걸어둔 활동이 소급 인정되지 않는다. (3-4-1)
+        // Quest 수락 시점의 누적값을 빼야 아침에 이미 걸어둔 활동이 소급 인정되지 않는다.
         int cumulative = snapshot.valueOf(metric);
         int achievedDelta = cumulative - baselineVal;
 
