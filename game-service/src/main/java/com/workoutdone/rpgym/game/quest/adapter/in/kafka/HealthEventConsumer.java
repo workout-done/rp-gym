@@ -27,7 +27,7 @@ import java.util.Optional;
  * 이 클래스가 하는 일은 셋뿐이다 -- 역직렬화 / 도메인 타입으로 변환 / 서비스 호출.
  * 트랜잭션을 열지 않고(경계는 서비스에 있다), 판정을 하지 않는다.
  *
- * 특히 HEALTH_ACTIVITY_SYNCED를 "활성 Quest가 있나" 따위로 미리 거르지 않는다.
+ * 특히 HEALTH_ACTIVITY_SYNCED를 "활성 Quest가 있나"로 미리 거르지 않는다.
  * 그 판단은 QuestProgressService 안에 있고, 여기서 거르면 baseline 조달 설계가 무너진다.
  *
  * 예외를 던지느냐 마느냐가 이 클래스의 핵심 결정이다.
