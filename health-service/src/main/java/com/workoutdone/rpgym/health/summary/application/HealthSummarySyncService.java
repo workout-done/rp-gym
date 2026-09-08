@@ -33,7 +33,7 @@ public class HealthSummarySyncService {
     public void sync(UUID userId, UUID activityId, LocalDate activityDate,
                      int steps, int activeMinutes, int activeCalories, Instant measuredAt) {
 
-        LocalDateTime now = LocalDateTime.now();
+        Instant now = Instant.now();
 
         DailyHealthSummary summary = summaryRepository
                 .findByUserIdAndActivityDate(userId, activityDate)
@@ -41,7 +41,7 @@ public class HealthSummarySyncService {
 
         boolean applied = summary.applySync(steps, activeMinutes, activeCalories, measuredAt, now);
         if (!applied) {
-            return; // 순서 역전된 오래된 데이터만 무시 (재동기화는 통과됨)
+            return;
         }
         summaryRepository.save(summary);
 
@@ -57,17 +57,13 @@ public class HealthSummarySyncService {
         if (allAchieved) {
             boolean newlyAchieved = summary.markAllGoalsAchieved(now);
             summaryRepository.save(summary);
-            // newlyAchieved == true일 때만 DailyGoalCompleted를 발행해야 중복 발행이 안 됨.
-            // 이번 스코프는 발행 자체를 안 함(팀 결정: 보너스 XP 없음, Achievement는 추가기능 기간).
-            // 나중에 이벤트 발행을 추가할 땐 이 변수를 조건으로 써야 한다.
         }
     }
 
-    private DailyHealthSummary createInitialSummaryAndProgress(UUID userId, LocalDate activityDate, LocalDateTime now) {
+    private DailyHealthSummary createInitialSummaryAndProgress(UUID userId, LocalDate activityDate, Instant now) {
         DailyHealthSummary summary = DailyHealthSummary.createFor(userId, activityDate, now);
         summaryRepository.save(summary);
 
-        // TODO: User Service health-contexts 조회로 실제 목표값 받아오기 (지금은 임시 기본값)
         progressRepository.saveAll(List.of(
                 DailyGoalProgress.createFor(summary.getSummaryId(), userId, activityDate, MetricType.STEPS, DEFAULT_STEP_GOAL),
                 DailyGoalProgress.createFor(summary.getSummaryId(), userId, activityDate, MetricType.ACTIVE_MINUTES, DEFAULT_ACTIVE_MINUTES_GOAL),

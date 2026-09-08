@@ -14,7 +14,6 @@ import org.hibernate.annotations.UuidGenerator;
 
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Getter
@@ -54,29 +53,29 @@ public class DailyHealthSummary extends BaseCreatedUpdatedEntity {
     private boolean allGoalsAchieved = false;
 
     @Column(name = "achieved_at")
-    private LocalDateTime achievedAt;
+    private Instant achievedAt;
 
     @Column(name = "last_synced_at", nullable = false)
     private Instant lastSyncedAt;
 
     @Column(name = "calculated_at", nullable = false)
-    private LocalDateTime calculatedAt;
+    private Instant calculatedAt;
 
     @Version
     @Column(name = "version", nullable = false)
     private Long version;
 
-    private DailyHealthSummary(UUID userId, LocalDate activityDate, LocalDateTime now) {
+    private DailyHealthSummary(UUID userId, LocalDate activityDate, Instant now) {
         this.userId = userId;
         this.activityDate = activityDate;
         this.calculatedAt = now;
     }
 
-    public static DailyHealthSummary createFor(UUID userId, LocalDate activityDate, LocalDateTime now) {
+    public static DailyHealthSummary createFor(UUID userId, LocalDate activityDate, Instant now) {
         return new DailyHealthSummary(userId, activityDate, now);
     }
 
-    public boolean applySync(int steps, int activeMinutes, int activeCalories, Instant measuredAt, LocalDateTime calculatedAt) {
+    public boolean applySync(int steps, int activeMinutes, int activeCalories, Instant measuredAt, Instant calculatedAt) {
         if (this.lastSyncedAt != null && measuredAt.isBefore(this.lastSyncedAt)) {
             return false;
         }
@@ -88,7 +87,7 @@ public class DailyHealthSummary extends BaseCreatedUpdatedEntity {
         return true;
     }
 
-    public boolean markAllGoalsAchieved(LocalDateTime now) {
+    public boolean markAllGoalsAchieved(Instant now) {
         if (this.achievedAt != null) {
             return false;
         }
