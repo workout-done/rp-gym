@@ -83,6 +83,19 @@ class RegisterHealthProfileServiceTest {
     }
 
     @Test
+    @DisplayName("유니크 제약 위반 예외가 한 단계 더 감싸져 들어와도 HEALTH_PROFILE_ALREADY_EXISTS로 변환한다")
+    void registerHealthProfile_uniqueConstraintDeeplyWrapped_convertsToAlreadyExists() {
+        UUID userId = UUID.randomUUID();
+        given(healthProfileRepository.existsByUserIdAndDeletedAtIsNull(userId)).willReturn(false);
+        given(healthProfileRepository.saveAndFlush(any(HealthProfile.class)))
+                .willThrow(deeplyWrappedDataIntegrityViolationException("ux_user_health_profiles_user_id"));
+
+        assertThatThrownBy(() -> registerHealthProfileService.registerHealthProfile(command(userId)))
+                .isInstanceOf(BaseException.class)
+                .satisfies(ex -> assertThat(((BaseException) ex).getErrorCode()).isEqualTo(HealthProfileErrorCode.HEALTH_PROFILE_ALREADY_EXISTS));
+    }
+
+    @Test
     @DisplayName("예상하지 못한 제약조건 위반이면 변환하지 않고 원래 예외를 그대로 던진다")
     void registerHealthProfile_unexpectedConstraintViolation_rethrowsOriginalException() {
         UUID userId = UUID.randomUUID();
@@ -102,5 +115,16 @@ class RegisterHealthProfileServiceTest {
                 constraintName
         );
         return new DataIntegrityViolationException("could not execute statement", cause);
+    }
+
+    // 드라이버/커넥션 풀 등에 의해 ConstraintViolationException이 한 단계 더 감싸져 들어오는 상황을 흉내낸다.
+    private DataIntegrityViolationException deeplyWrappedDataIntegrityViolationException(String constraintName) {
+        ConstraintViolationException cve = new ConstraintViolationException(
+                "duplicate key value violates unique constraint",
+                new SQLException("duplicate key"),
+                constraintName
+        );
+        RuntimeException extraWrapper = new RuntimeException("한 단계 더 감싸진 상황을 흉내냄", cve);
+        return new DataIntegrityViolationException("could not execute statement", extraWrapper);
     }
 }
