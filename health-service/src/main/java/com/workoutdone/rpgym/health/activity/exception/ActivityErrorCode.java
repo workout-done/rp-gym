@@ -10,7 +10,8 @@ import org.springframework.http.HttpStatus;
 public enum ActivityErrorCode implements ErrorCode {
 
     INVALID_ACTIVITY_VALUE("INVALID_ACTIVITY_VALUE", HttpStatus.BAD_REQUEST, "건강 활동 값은 0 이상이어야 합니다."),
-    HEALTH_ACTIVITY_NOT_FOUND("HEALTH_ACTIVITY_NOT_FOUND", HttpStatus.NOT_FOUND, "건강 활동 데이터를 찾을 수 없습니다.");
+    HEALTH_ACTIVITY_NOT_FOUND("HEALTH_ACTIVITY_NOT_FOUND", HttpStatus.NOT_FOUND, "건강 활동 데이터를 찾을 수 없습니다."),
+    DUPLICATE_SYNC("DUPLICATE_SYNC", HttpStatus.CONFLICT, "이미 반영된 동기화 요청입니다.");
 
     private final String code;
     private final HttpStatus status;
