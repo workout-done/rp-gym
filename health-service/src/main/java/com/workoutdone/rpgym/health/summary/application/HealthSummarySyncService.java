@@ -69,7 +69,9 @@ public class HealthSummarySyncService {
         boolean allAchieved = !progresses.isEmpty()
                 && progresses.stream().allMatch(DailyGoalProgress::isAchieved);
         if (allAchieved) {
-            boolean newlyAchieved = summary.markAllGoalsAchieved(now);
+            // TODO(#54): newlyAchieved == true 일 때 DAILY_GOAL_COMPLETED를 Outbox에 적재한다.
+            // Game Service 업적·보상 연동과 함께 트러블슈팅 기간에 구현하기로 팀 합의.
+            summary.markAllGoalsAchieved(now);
             summaryRepository.save(summary);
         }
     }
