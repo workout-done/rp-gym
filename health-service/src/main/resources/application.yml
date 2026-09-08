@@ -20,13 +20,30 @@ spring:
     url: ${POSTGRES_URL}
     username: ${POSTGRES_USERNAME}
     password: ${POSTGRES_PASSWORD}
+    driver-class-name: org.postgresql.Driver
 
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
+    producer:
+      # Outbox payload를 문자열 원문 그대로 싣는다. 직렬화기가 값을 다시 만들지 않도록 String으로 고정
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      # "보냈다"고 인정하는 기준 -> all : 복제본까지 전부 받아야 성공 처리
+      # (0 : 던지고 확인 안 함. 제일 빠르고 제일 잘 잃어버림, 1 : 리더 브로커 한 대만 받으면 성공 처리 -> 아무도 모르게 메세지가 없는 영구유실 가능성.)
+      acks: all
+      properties:
+        # 프로듀서 내부 재시도로 인한 중복 적재 방지 + 파티션 내 순서 보장
+        enable.idempotence: true
+        # 응답을 안 받고도 미리 보낼 수 있는 요청 개수(enable.idempotence가 켜져 있으면 Kafka가 5 이하에서만 순서를 보장해줌. idempotence가 켜져 있으면 기본값 :5)
+        max.in.flight.requests.per.connection: 5
+        # 한 번의 시도를 얼마나 기다릴지
+        request.timeout.ms: 10000
+        # 재시도 전부 합쳐서 얼마나 버틸지
+        delivery.timeout.ms: 30000
 
   jpa:
     hibernate:
-      # Flyway 도입 전까지는 DDL을 직접 실행하고 매핑 검증만 수행
+      # Flyway가 DDL을 관리하므로 Hibernate는 매핑 검증만 수행
       ddl-auto: validate
     properties:
       hibernate:
@@ -35,10 +52,30 @@ spring:
         default_schema: health_service
     open-in-view: false
 
+  flyway:
+    schemas: health_service
+    baseline-on-migrate: true
+
   jackson:
     serialization:
       # 날짜/시각을 epoch 숫자가 아닌 ISO-8601 문자열로 직렬화
       write-dates-as-timestamps: false
+
+rpgym:
+  outbox:
+    # PENDING 폴링 주기 (ms)
+    poll-interval: 1000
+    # 한 라운드에 처리할 최대 건수
+    poll-size: 100
+    # 이 횟수만큼 실패하면 DLQ로 보내고 FAILED로 종료한다
+    max-retry: 5
+    # Kafka 발행 응답 대기 시간
+    send-timeout: 5s
+    # Health Service가 발행하는 모든 이벤트를 한 토픽으로 보낸다.
+    # 종류별로 나누면 같은 sync에서 나간 이벤트들이 서로 다른 토픽으로 흩어져
+    # 소비 순서가 뒤집힌다. (Quest baseline이 옛날 누적값으로 고정되는 문제)
+    topic: health.events
+    dlq-suffix: .dlq
 
 eureka:
   instance:

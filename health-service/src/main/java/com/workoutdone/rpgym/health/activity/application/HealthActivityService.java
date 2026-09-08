@@ -25,6 +25,7 @@ public class HealthActivityService implements HealthActivitySyncUseCase, HealthA
 
     private final HealthActivityRepository healthActivityRepository;
     private final EventOutboxPort eventOutboxPort;
+    private final DailyProgressUpdatePort dailyProgressUpdatePort;
 
     /**
      * 건강 활동 동기화.
@@ -55,6 +56,10 @@ public class HealthActivityService implements HealthActivitySyncUseCase, HealthA
                 log.info("재동기화로 스냅샷을 갱신한다. userId={} measuredAt={}",
                         command.userId(), command.measuredAt());
                 activity.resync(snapshot, command.source());
+
+                // 누적값이 바뀌었으므로 달성률도 다시 계산해야 한다.
+                // 이걸 빼면 외부 소스의 중복 제거나 기록 삭제 후 요약이 옛날 값으로 남는다.
+                dailyProgressUpdatePort.applySync(SyncedActivity.from(activity));
             }
             return new HealthActivitySyncResult(HealthActivityView.of(activity), false);
         }
@@ -79,6 +84,10 @@ public class HealthActivityService implements HealthActivitySyncUseCase, HealthA
                 dedupKey(saved),
                 HealthActivitySyncedData.from(saved)
         );
+
+        // HealthActivitySynced를 Outbox에 기록한 뒤에 호출한다.
+        // 그래야 Game Service가 누적값을 먼저 받고 DailyGoalCompleted를 나중에 받는다.
+        dailyProgressUpdatePort.applySync(SyncedActivity.from(saved));
 
         return new HealthActivitySyncResult(HealthActivityView.of(saved), true);
     }

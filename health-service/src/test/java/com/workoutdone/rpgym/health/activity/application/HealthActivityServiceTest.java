@@ -29,6 +29,8 @@ class HealthActivityServiceTest {
     HealthActivityRepository healthActivityRepository;
     @Mock
     EventOutboxPort eventOutboxPort;
+    @Mock
+    DailyProgressUpdatePort dailyProgressUpdatePort;
     @InjectMocks
     HealthActivityService healthActivityService;
 
@@ -61,6 +63,7 @@ class HealthActivityServiceTest {
         assertThat(result.view().steps()).isEqualTo(3100);
         verify(healthActivityRepository).save(any(HealthActivity.class));
         verify(eventOutboxPort).append(any(), any(), eq(userId), any(), anyString(), any());
+        verify(dailyProgressUpdatePort).applySync(any(SyncedActivity.class));
     }
 
     @Test
@@ -88,6 +91,7 @@ class HealthActivityServiceTest {
         assertThat(result.created()).isFalse();
         verify(healthActivityRepository, never()).save(any());
         verifyNoInteractions(eventOutboxPort);
+        verifyNoInteractions(dailyProgressUpdatePort);
     }
 
     @Test
@@ -103,6 +107,8 @@ class HealthActivityServiceTest {
         assertThat(result.view().steps()).isEqualTo(3500);
         assertThat(existing.getActivityDate()).isEqualTo(LocalDate.of(2026, 8, 28));
         verifyNoInteractions(eventOutboxPort);
+        // 이벤트는 다시 안 내보내지만 요약은 다시 계산해야 한다 (윤석 님과 합의한 재동기화 경로)
+        verify(dailyProgressUpdatePort).applySync(any(SyncedActivity.class));
     }
 
     @Test
