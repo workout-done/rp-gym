@@ -1,5 +1,6 @@
 package com.workoutdone.rpgym.health.summary.application;
 
+import com.workoutdone.rpgym.health.activity.application.SyncedActivity;
 import com.workoutdone.rpgym.health.summary.domain.DailyGoalProgress;
 import com.workoutdone.rpgym.health.summary.domain.DailyGoalProgressRepository;
 import com.workoutdone.rpgym.health.summary.domain.DailyHealthSummary;
@@ -28,26 +29,36 @@ public class HealthSummarySyncService {
     private static final BigDecimal DEFAULT_ACTIVE_CALORIES_GOAL = BigDecimal.valueOf(300);
 
     @Transactional
-    public void sync(UUID userId, UUID activityId, LocalDate activityDate,
-                     int steps, int activeMinutes, int activeCalories, Instant measuredAt) {
+    public void sync(SyncedActivity syncedActivity) {
+        UUID userId = syncedActivity.userId();
+        LocalDate activityDate = syncedActivity.activityDate();
+        Instant measuredAt = syncedActivity.measuredAt();
+        int steps = syncedActivity.steps();
+        int activeMinutes = syncedActivity.activeMinutes();
+        int activeCalories = syncedActivity.activeCalories();
 
         Instant now = Instant.now();
 
         DailyHealthSummary summary = summaryRepository.findByUserIdAndActivityDate(userId, activityDate).orElse(null);
 
         List<DailyGoalProgress> progresses;
-        if (summary == null) {
-            summary = createSummary(userId, activityDate, now);
-            progresses = createInitialProgresses(summary, userId, activityDate);
-        } else {
-            progresses = progressRepository.findBySummaryId(summary.getSummaryId());
+        boolean isNew = summary == null;
+        if (isNew) {
+            summary = DailyHealthSummary.createFor(userId, activityDate, now);
         }
 
         boolean applied = summary.applySync(steps, activeMinutes, activeCalories, measuredAt, now);
         if (!applied) {
             return;
         }
-        summaryRepository.save(summary);
+
+        summary = summaryRepository.save(summary);
+
+        if (isNew) {
+            progresses = createInitialProgresses(summary, userId, activityDate);
+        } else {
+            progresses = progressRepository.findBySummaryId(summary.getSummaryId());
+        }
 
         for (DailyGoalProgress progress : progresses) {
             BigDecimal achievedValue = resolveAchievedValue(progress.getMetricType(), steps, activeMinutes, activeCalories);
@@ -61,11 +72,6 @@ public class HealthSummarySyncService {
             boolean newlyAchieved = summary.markAllGoalsAchieved(now);
             summaryRepository.save(summary);
         }
-    }
-
-    private DailyHealthSummary createSummary(UUID userId, LocalDate activityDate, Instant now) {
-        DailyHealthSummary summary = DailyHealthSummary.createFor(userId, activityDate, now);
-        return summaryRepository.save(summary);
     }
 
     private List<DailyGoalProgress> createInitialProgresses(DailyHealthSummary summary, UUID userId, LocalDate activityDate) {
