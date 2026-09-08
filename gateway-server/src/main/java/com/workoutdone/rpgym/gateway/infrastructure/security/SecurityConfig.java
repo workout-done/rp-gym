@@ -47,6 +47,10 @@ public class SecurityConfig {
                                 "/actuator/**"
                         ).permitAll()
 
+                        .pathMatchers(
+                                "/api/v1/internal/**"
+                        ).denyAll()
+
                         // 그 외 모든 API는 인증 필요
                         // Spring Security가 인증 정보를 기반으로 인가 처리
                         .anyExchange().authenticated()
