@@ -17,7 +17,7 @@ import java.util.UUID;
 @Transactional
 public class RegisterDailyHealthGoalService {
 
-    // V2__create_user_daily_health_goals_table.sql에 정의된 부분 유니크 인덱스 이름과 동일해야 한다.
+    // V3__create_user_daily_health_goals_table.sql에 정의된 부분 유니크 인덱스 이름과 동일해야 한다.
     private static final String USER_ID_UNIQUE_CONSTRAINT = "ux_user_daily_health_goals_user_id";
 
     private final DailyHealthGoalRepository dailyHealthGoalRepository;
@@ -56,12 +56,29 @@ public class RegisterDailyHealthGoalService {
     // 어떤 유니크 제약조건이 위반됐는지 확인해서 알맞은 중복 에러로 변환
     // 예상하지 못한 제약조건 위반이면 그대로 다시 던져서 500으로 처리되게 둠
     private BaseException resolveDuplicateException(DataIntegrityViolationException e) {
-        if (e.getCause() instanceof ConstraintViolationException cve) {
+        ConstraintViolationException cve = findConstraintViolationException(e);
+
+        if (cve != null) {
             if (USER_ID_UNIQUE_CONSTRAINT.equals(cve.getConstraintName())) {
                 return new BaseException(DailyHealthGoalErrorCode.DAILY_GOAL_ALREADY_EXISTS);
             }
         }
 
         throw e;
+    }
+
+    // 드라이버/커넥션 풀 등에 의해 예외가 한 단계 이상 더 감싸져 들어오는 환경도 대비해,
+    // e.getCause() 한 단계만 보지 않고 원인 체인을 끝까지 순회하며 찾는다.
+    private ConstraintViolationException findConstraintViolationException(Throwable throwable) {
+        Throwable cause = throwable;
+
+        while (cause != null) {
+            if (cause instanceof ConstraintViolationException cve) {
+                return cve;
+            }
+            cause = cause.getCause();
+        }
+
+        return null;
     }
 }
