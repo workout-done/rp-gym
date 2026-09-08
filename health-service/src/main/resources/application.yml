@@ -5,6 +5,92 @@ spring:
   application:
     name: health-service
 
+  config:
+    # 서비스 디렉터리의 .env를 프로퍼티 파일로 읽는다.
+    # 확장자가 없으므로 [.properties]로 파서를 지정한다.
+    # optional: 이므로 파일이 없어도 기동에 실패하지 않는다(Docker/CI).
+    # OS 환경변수가 우선순위가 높으므로 Compose의 env_file이 항상 이긴다.
+    # 실행 위치에 따라 작업 디렉터리가 달라지므로 두 경로를 모두 시도한다.
+    # (모듈 디렉터리에서 실행 / 프로젝트 루트에서 실행)
+    import:
+      - optional:file:.env[.properties]
+      - optional:file:health-service/.env[.properties]
+
+  datasource:
+    url: ${POSTGRES_URL}
+    username: ${POSTGRES_USERNAME}
+    password: ${POSTGRES_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
+    producer:
+      # Outbox payload를 문자열 원문 그대로 싣는다. 직렬화기가 값을 다시 만들지 않도록 String으로 고정
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      # "보냈다"고 인정하는 기준 -> all : 복제본까지 전부 받아야 성공 처리
+      # (0 : 던지고 확인 안 함. 제일 빠르고 제일 잘 잃어버림, 1 : 리더 브로커 한 대만 받으면 성공 처리 -> 아무도 모르게 메세지가 없는 영구유실 가능성.)
+      acks: all
+      properties:
+        # 프로듀서 내부 재시도로 인한 중복 적재 방지 + 파티션 내 순서 보장
+        enable.idempotence: true
+        # 응답을 안 받고도 미리 보낼 수 있는 요청 개수(enable.idempotence가 켜져 있으면 Kafka가 5 이하에서만 순서를 보장해줌. idempotence가 켜져 있으면 기본값 :5)
+        max.in.flight.requests.per.connection: 5
+        # 한 번의 시도를 얼마나 기다릴지
+        request.timeout.ms: 10000
+        # 재시도 전부 합쳐서 얼마나 버틸지
+        delivery.timeout.ms: 30000
+
+  jpa:
+    hibernate:
+      # Flyway가 DDL을 관리하므로 Hibernate는 매핑 검증만 수행
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: true
+        # Health Service가 소유한 스키마
+        default_schema: health_service
+    open-in-view: false
+
+  flyway:
+    schemas: health_service
+    baseline-on-migrate: true
+
+  jackson:
+    serialization:
+      # 날짜/시각을 epoch 숫자가 아닌 ISO-8601 문자열로 직렬화
+      write-dates-as-timestamps: false
+
+rpgym:
+  outbox:
+    # PENDING 폴링 주기 (ms)
+    poll-interval: 1000
+    # 한 라운드에 처리할 최대 건수
+    poll-size: 100
+    # 이 횟수만큼 실패하면 DLQ로 보내고 FAILED로 종료한다
+    max-retry: 5
+    # Kafka 발행 응답 대기 시간
+    send-timeout: 5s
+    # Health Service가 발행하는 모든 이벤트를 한 토픽으로 보낸다.
+    # 종류별로 나누면 같은 sync에서 나간 이벤트들이 서로 다른 토픽으로 흩어져
+    # 소비 순서가 뒤집힌다. (Quest baseline이 옛날 누적값으로 고정되는 문제)
+    topic: health.events
+    dlq-suffix: .dlq
+  synthetic:
+    # 기본 비활성. 로컬에서 확인할 때만 켠다.
+    enabled: false
+    # 수집 주기 (ms). Outbox 폴링(1초)과 겹치면 로그가 섞여 디버깅이 어려우므로 넉넉히 둔다.
+    interval-ms: 60000
+    # 데이터를 생성할 대상 사용자 (회원가입 후 발급된 UUID를 넣는다)
+    # 대상 사용자는 로컬 계정마다 다르므로 여기에 커밋하지 않는다.
+    # health-service/.env 에 넣으면 이 값을 덮어쓴다 (.env는 gitignore 대상).
+    #   rpgym.synthetic.user-ids=UUID1,UUID2,UUID3
+    user-ids: [ ]
+    # 한 번의 수집에서 더할 최대 증가분
+    max-steps-per-tick: 300
+    max-active-minutes-per-tick: 2
+    max-active-calories-per-tick: 20
+
 eureka:
   instance:
     # Eureka Server에 주소를 등록할 때 hostname 대신 IP를 선호

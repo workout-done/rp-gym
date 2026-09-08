@@ -6,9 +6,8 @@ spring:
     name: game-service
 
   config:
-    # 서비스 디렉터리의 .env 를 프로퍼티 파일로 읽는다.
-    # 실행 위치에 따라 작업 디렉터리가 달라지므로 두 경로를 모두 시도한다.
-    # (gradlew bootRun → game-service/ , IntelliJ Run → 프로젝트 루트)
+    # 실행 위치에 따라 작업 디렉터리가 다르므로 두 경로를 모두 시도한다
+    # (모듈 디렉터리 실행 / 프로젝트 루트 실행)
     import:
       - optional:file:.env[.properties]
       - optional:file:game-service/.env[.properties]
@@ -18,6 +17,20 @@ spring:
     username: ${POSTGRES_USERNAME}
     password: ${POSTGRES_PASSWORD}
 
+  jpa:
+    hibernate:
+      # DDL은 Flyway가 만든다. 엔티티와 실제 테이블이 어긋나면 기동 시점에 실패한다
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        # 엔티티에 schema를 지정하지 않은 것(characters)도 이 스키마로 해석된다
+        default_schema: game_service
+
+  flyway:
+    # flyway_schema_history와 수식어 없는 DDL이 public이 아니라 이 스키마에 생긴다
+    schemas: game_service
+
   data:
     redis:
       host: ${REDIS_HOST}
@@ -26,22 +39,22 @@ spring:
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
 
-  jpa:
-    hibernate:
-      # Flyway 가 스키마를 관리하므로 Hibernate 는 엔티티-스키마 일치 여부만 검증한다.
-      # user-service / health-service 와 동일한 설정이다.
-      #
-      # ⚠ #40(퀘스트/XP)이 먼저 머지되어야 한다.
-      #   quests / wallets / xp_ledgers / outbox_events 를 만드는 마이그레이션이 거기 있어서,
-      #   그것 없이 이 PR 만 머지하면 validate 가 부팅을 막는다. (PR #38 리뷰 합의)
-      ddl-auto: validate
-    open-in-view: false
+    consumer:
+      # Health 이벤트 3종이 한 토픽으로 오므로 컨슈머 그룹도 하나다
+      group-id: game-service
+      # 컨슈머가 늦게 떠도 밀린 이벤트를 처음부터 읽는다. 유실 0의 전제
+      auto-offset-reset: earliest
+      # 자동 커밋은 처리 성공과 무관하게 시간으로 커밋한다. 실패한 이벤트가 조용히 사라진다
+      enable-auto-commit: false
+      # envelope의 eventType을 읽기 전에는 타입을 모른다. 문자열로 받아 컨슈머가 분기한다
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
 
-  flyway:
-    # game-service 가 소유한 스키마. 이 설정이 켜지면 Flyway 가 search_path 를 여기로 옮기므로
-    # 마이그레이션의 수식어 없는 CREATE TABLE 이 전부 game_service 에 생성된다.
-    schemas: game_service
-
+    listener:
+      # 레코드 하나 처리할 때마다 커밋. 배치 커밋은 중간에서 죽으면 처리한 것까지 재처리된다
+      ack-mode: RECORD
+      # Kafka 구간은 기본 설정으로 traceId가 끊긴다. 켜야 헤더로 전파된다
+      observation-enabled: true
 
 eureka:
   instance:
@@ -67,6 +80,12 @@ management:
         # health: 애플리케이션 상태 확인, info: 애플리케이션 정보 확인
         include: health, info
 
+app:
+  kafka:
+    #  이벤트 계약 -- Health 3종을 한 토픽으로 통합했다
+    health-events-topic: health.events
+
 rpgym:
   xp:
-    source: mock # wallets 준비되면 wallet 으로 변경
+    # mock: 해시 기반 가짜 XP / wallet: XpQueryService 경유 실제 wallets
+    source: mock
