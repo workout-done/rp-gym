@@ -77,8 +77,10 @@ rpgym:
     # 수집 주기 (ms). Outbox 폴링(1초)과 겹치면 로그가 섞여 디버깅이 어려우므로 넉넉히 둔다.
     interval-ms: 60000
     # 데이터를 생성할 대상 사용자 (회원가입 후 발급된 UUID를 넣는다)
-    user-ids:
-      - 00000000-0000-0000-0000-000000000001
+    # 대상 사용자는 로컬 계정마다 다르므로 여기에 커밋하지 않는다.
+    # health-service/.env 에 넣으면 이 값을 덮어쓴다 (.env는 gitignore 대상).
+    #   rpgym.synthetic.user-ids=UUID1,UUID2,UUID3
+    user-ids: [ ]
     # 한 번의 수집에서 더할 최대 증가분
     max-steps-per-tick: 300
     max-active-minutes-per-tick: 2
