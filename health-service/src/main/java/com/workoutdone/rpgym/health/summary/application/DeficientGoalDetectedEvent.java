@@ -7,6 +7,7 @@ import java.util.UUID;
 public record DeficientGoalDetectedEvent(
         UUID userId,
         UUID summaryId,
+        UUID activityId,
         LocalDate activityDate,
         Instant measuredAt,
         String mostDeficientMetric,

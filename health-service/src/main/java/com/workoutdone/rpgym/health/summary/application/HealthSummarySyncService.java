@@ -7,13 +7,16 @@ import com.workoutdone.rpgym.health.summary.domain.DailyHealthSummary;
 import com.workoutdone.rpgym.health.summary.domain.DailyHealthSummaryRepository;
 import com.workoutdone.rpgym.health.summary.domain.MetricType;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -22,11 +25,17 @@ public class HealthSummarySyncService {
 
     private final DailyHealthSummaryRepository summaryRepository;
     private final DailyGoalProgressRepository progressRepository;
+    private final ApplicationEventPublisher eventPublisher;
     // TODO: User Service health-contexts 조회 클라이언트 (다음 작업)
 
     private static final BigDecimal DEFAULT_STEP_GOAL = BigDecimal.valueOf(5000);
     private static final BigDecimal DEFAULT_ACTIVE_MINUTES_GOAL = BigDecimal.valueOf(60);
     private static final BigDecimal DEFAULT_ACTIVE_CALORIES_GOAL = BigDecimal.valueOf(300);
+
+    // shortage 동률일 때 우선순위 (STEPS > ACTIVE_MINUTES > ACTIVE_CALORIES)
+    private static final List<MetricType> METRIC_PRIORITY = List.of(
+            MetricType.STEPS, MetricType.ACTIVE_MINUTES, MetricType.ACTIVE_CALORIES
+    );
 
     @Transactional
     public void sync(SyncedActivity syncedActivity) {
@@ -69,11 +78,32 @@ public class HealthSummarySyncService {
         boolean allAchieved = !progresses.isEmpty()
                 && progresses.stream().allMatch(DailyGoalProgress::isAchieved);
         if (allAchieved) {
-            // TODO(#54): newlyAchieved == true 일 때 DAILY_GOAL_COMPLETED를 Outbox에 적재한다.
-            // Game Service 업적·보상 연동과 함께 트러블슈팅 기간에 구현하기로 팀 합의.
+            // TODO(#63 이전 논의): newlyAchieved == true 일 때 DAILY_GOAL_COMPLETED를 Outbox에 적재한다.
+            //            Game Service 업적·보상 연동과 함께 트러블슈팅 기간에 구현하기로 팀 합의.
             summary.markAllGoalsAchieved(now);
             summaryRepository.save(summary);
+        } else {
+            publishDeficientGoalEventIfNeeded(summary, syncedActivity.activityId(), progresses);
         }
+    }
+
+    private void publishDeficientGoalEventIfNeeded(DailyHealthSummary summary, UUID activityId, List<DailyGoalProgress> progresses) {
+        Optional<DailyGoalProgress> mostDeficient = progresses.stream()
+                .filter(p -> !p.isAchieved())
+                .max(Comparator
+                        .comparing(DailyGoalProgress::getShortageValue)
+                        .thenComparing(p -> METRIC_PRIORITY.indexOf(p.getMetricType()), Comparator.reverseOrder())
+                );
+
+        mostDeficient.ifPresent(progress -> eventPublisher.publishEvent(new DeficientGoalDetectedEvent(
+                summary.getUserId(),
+                summary.getSummaryId(),
+                activityId,
+                summary.getActivityDate(),
+                summary.getLastSyncedAt(),
+                progress.getMetricType().name(),
+                progress.getShortageValue().intValue()
+        )));
     }
 
     private List<DailyGoalProgress> createInitialProgresses(DailyHealthSummary summary, UUID userId, LocalDate activityDate) {
