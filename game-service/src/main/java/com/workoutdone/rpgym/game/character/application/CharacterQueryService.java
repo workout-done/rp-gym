@@ -3,12 +3,10 @@ package com.workoutdone.rpgym.game.character.application;
 
 import com.workoutdone.rpgym.game.character.domain.XpClient;
 import com.workoutdone.rpgym.game.character.domain.CharacterReader;
-import com.workoutdone.rpgym.game.character.domain.Character;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -24,12 +22,11 @@ public class CharacterQueryService implements CharacterQueryUseCase {
         if (userId == null){
             throw new IllegalArgumentException("userId는 필수입니다.");
         }
-        Optional<Character> character = characterReader.findByUserId(userId);
-        if (character.isEmpty()){
-            return CharacterView.empty(userId);
-        }
-
+        // XP 가 원본이고 characters 는 파생값 저장소다. 행이 없어도 XP 는 존재할 수 있다.
         int totalXp = xpClient.findTotalXp(userId);
-        return CharacterView.of(character.get(), totalXp);
+
+        return characterReader.findByUserId(userId)
+                .map(character -> CharacterView.of(character, totalXp))
+                .orElseGet(() -> CharacterView.empty(userId, totalXp));
     }
 }
