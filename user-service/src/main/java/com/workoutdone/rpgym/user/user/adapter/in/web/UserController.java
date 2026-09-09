@@ -6,21 +6,26 @@ import com.workoutdone.rpgym.common.exception.CommonErrorCode;
 import com.workoutdone.rpgym.user.security.RequireRole;
 import com.workoutdone.rpgym.user.user.adapter.in.web.dto.ReqLoginDto;
 import com.workoutdone.rpgym.user.user.adapter.in.web.dto.ReqSignUpDto;
+import com.workoutdone.rpgym.user.user.adapter.in.web.dto.ReqUpdateMyAccountDto;
 import com.workoutdone.rpgym.user.user.adapter.in.web.dto.ResLoginDto;
 import com.workoutdone.rpgym.user.user.adapter.in.web.dto.ResMyAccountDto;
 import com.workoutdone.rpgym.user.user.adapter.in.web.dto.ResSignUpDto;
+import com.workoutdone.rpgym.user.user.adapter.in.web.dto.ResUpdateMyAccountDto;
 import com.workoutdone.rpgym.user.user.application.GetMyAccountResult;
 import com.workoutdone.rpgym.user.user.application.GetMyAccountService;
 import com.workoutdone.rpgym.user.user.application.LoginResult;
 import com.workoutdone.rpgym.user.user.application.LoginService;
 import com.workoutdone.rpgym.user.user.application.SignUpResult;
 import com.workoutdone.rpgym.user.user.application.SignUpService;
+import com.workoutdone.rpgym.user.user.application.UpdateMyAccountResult;
+import com.workoutdone.rpgym.user.user.application.UpdateMyAccountService;
 import com.workoutdone.rpgym.user.user.domain.UserRole;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -37,6 +42,7 @@ public class UserController {
     private final SignUpService signUpService;
     private final LoginService loginService;
     private final GetMyAccountService getMyAccountService;
+    private final UpdateMyAccountService updateMyAccountService;
 
     @PostMapping("/signup")
     public ResponseEntity<ResSignUpDto> signUp(@Valid @RequestBody ReqSignUpDto request) {
@@ -71,7 +77,24 @@ public class UserController {
                 .body(ResMyAccountDto.from(result));
     }
 
-    //TO-DO: 게이트웨이에서 JWT 유효성 및 요청헤더 유효성 검증 로직 추가되면 해당 메서드는 삭제 예정
+    // USER role만 본인 계정 수정 가능 (ADMIN 제외)
+    // X-User-Role 검증은 RoleAuthorizationInterceptor가 처리
+    @RequireRole(UserRole.USER)
+    @PatchMapping("/me")
+    public ResponseEntity<ResUpdateMyAccountDto> updateMyAccount(
+            @RequestHeader(value = HeaderConstants.USER_ID, required = false) String userIdHeader,
+            @Valid @RequestBody ReqUpdateMyAccountDto request
+    ) {
+        UUID userId = resolveUserId(userIdHeader);
+        UpdateMyAccountResult result = updateMyAccountService.updateMyAccount(request.toCommand(userId));
+
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(ResUpdateMyAccountDto.from(result));
+    }
+
+
+    ////TO-DO: 게이트웨이에서 JWT 유효성 및 요청헤더 유효성 검증 로직 추가되면 해당 메서드는 삭제 예정
     // 게이트웨이를 거치지 않아 X-User-Id가 없거나 UUID 형식이 아니면 인증 안 된 요청으로 취급
     // 실제로 존재하는 사용자인지 여부는 GetMyAccountService.getMyAccount 에서 처리
     private UUID resolveUserId(String userIdHeader) {
