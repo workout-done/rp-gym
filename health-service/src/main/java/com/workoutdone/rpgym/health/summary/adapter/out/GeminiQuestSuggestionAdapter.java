@@ -30,8 +30,8 @@ public class GeminiQuestSuggestionAdapter implements QuestSuggestionAiPort {
     public GeminiQuestSuggestionAdapter(RestClient.Builder restClientBuilder,
                                         @Value("${GEMINI_API_KEY:}") String apiKey) {
         SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
-        requestFactory.setConnectTimeout(3000);
-        requestFactory.setReadTimeout(3000);
+        requestFactory.setConnectTimeout(2000);
+        requestFactory.setReadTimeout(2000);
 
         this.restClient = restClientBuilder
                 .requestFactory(requestFactory)
