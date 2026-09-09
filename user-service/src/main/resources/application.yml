@@ -1,0 +1,62 @@
+server:
+  port: 19010
+
+spring:
+  application:
+    name: user-service
+
+  config:
+    import: optional:file:.env[.properties]
+
+  datasource:
+    url: ${POSTGRES_URL}
+    username: ${POSTGRES_USERNAME}
+    password: ${POSTGRES_PASSWORD}
+
+  jpa:
+    hibernate:
+      # Flyway가 스키마를 관리하므로 Hibernate는 엔티티-스키마 일치 여부만 검증
+      ddl-auto: validate
+    open-in-view: false
+
+  flyway:
+    # users 테이블 명세서 기준 스키마
+    schemas: user_service
+
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
+
+jwt:
+  # Access Token 설정 정보
+  secret: ${JWT_SECRET}
+  access-token-expiry-seconds: 1800 #만료시간 30분
+
+eureka:
+  instance:
+    hostname: ${EUREKA_INSTANCE_HOSTNAME:localhost}
+    # Eureka Server에 주소를 등록할 때 hostname 대신 IP를 선호
+    prefer-ip-address: ${EUREKA_PREFER_IP_ADDRESS:true}
+
+  client:
+    # Eureka Server에 User Service 등록
+    register-with-eureka: true
+
+    # Eureka Registry의 서비스 목록을 가져옴
+    fetch-registry: true
+
+    service-url:
+      # Eureka Server 주소
+      defaultZone: ${EUREKA_SERVER_URL:http://localhost:19000/eureka/}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        # HTTP로 노출할 Actuator Endpoint
+        # health: 애플리케이션 상태 확인, info: 애플리케이션 정보 확인
+        include: health, info, prometheus

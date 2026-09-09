@@ -1,0 +1,144 @@
+server:
+  port: 19012
+
+spring:
+  application:
+    name: game-service
+
+  config:
+    # 실행 위치에 따라 작업 디렉터리가 다르므로 두 경로를 모두 시도한다
+    # (모듈 디렉터리 실행 / 프로젝트 루트 실행)
+    import:
+      - optional:file:.env[.properties]
+      - optional:file:game-service/.env[.properties]
+
+  datasource:
+    url: ${POSTGRES_URL}
+    username: ${POSTGRES_USERNAME}
+    password: ${POSTGRES_PASSWORD}
+
+  jpa:
+    hibernate:
+      # DDL은 Flyway가 만든다. 엔티티와 실제 테이블이 어긋나면 기동 시점에 실패한다
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        # 엔티티에 schema를 지정하지 않은 것(characters)도 이 스키마로 해석된다
+        default_schema: game_service
+
+  flyway:
+    # flyway_schema_history와 수식어 없는 DDL이 public이 아니라 이 스키마에 생긴다
+    schemas: game_service
+
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
+
+    consumer:
+      # Health 이벤트 3종이 한 토픽으로 오므로 컨슈머 그룹도 하나다
+      group-id: game-service
+      # 컨슈머가 늦게 떠도 밀린 이벤트를 처음부터 읽는다. 유실 0의 전제
+      auto-offset-reset: earliest
+      # 자동 커밋은 처리 성공과 무관하게 시간으로 커밋한다. 실패한 이벤트가 조용히 사라진다
+      enable-auto-commit: false
+      # envelope의 eventType을 읽기 전에는 타입을 모른다. 문자열로 받아 컨슈머가 분기한다
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+
+    producer:
+      # Outbox payload를 문자열 원문 그대로 싣는다. 직렬화기가 값을 다시 만들지 않도록 String으로 고정
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      # "보냈다"의 기준. all = 복제본까지 받아야 성공. 1이면 리더만 받고 조용히 유실될 수 있다
+      acks: all
+      properties:
+        # 프로듀서 내부 재시도로 인한 중복 적재 방지 + 파티션 내 순서 보장
+        enable.idempotence: true
+        # 응답 전에 미리 보낼 수 있는 요청 수. idempotence가 켜져 있으면 5 이하에서만 순서가 보장된다
+        max.in.flight.requests.per.connection: 5
+        # 한 번의 시도를 얼마나 기다릴지
+        request.timeout.ms: 10000
+        # 재시도를 전부 합쳐 얼마나 버틸지
+        delivery.timeout.ms: 30000
+
+    listener:
+      # 레코드 하나 처리할 때마다 커밋. 배치 커밋은 중간에서 죽으면 처리한 것까지 재처리된다
+      ack-mode: RECORD
+      # Kafka 구간은 기본 설정으로 traceId가 끊긴다. 켜야 헤더로 전파된다
+      observation-enabled: true
+
+    template:
+      # 발행 구간도 같은 trace에 이어 붙는다
+      observation-enabled: true
+
+eureka:
+  instance:
+    # 로컬 IDE 실행에서는 IP 등록이 편해서 기본값이 true 다.
+    # 컨테이너에서는 blue/green + shared 두 네트워크에 붙어 IP 가 2개라
+    # 어느 쪽이 등록될지 비결정적이다. shared 쪽 IP 가 등록되면
+    # blue-network 에만 있는 게이트웨이가 못 닿는다. 그래서 compose 가 false 를 주입한다.
+    prefer-ip-address: ${EUREKA_PREFER_IP_ADDRESS:true}
+    hostname: ${EUREKA_INSTANCE_HOSTNAME:localhost}
+
+  client:
+    # Eureka Server에 Game Service 등록
+    register-with-eureka: true
+
+    # Eureka Registry의 서비스 목록을 가져옴
+    fetch-registry: true
+
+    service-url:
+      # 컨테이너 안의 localhost 는 자기 자신이라 등록이 실패한다.
+      # compose 가 EUREKA_SERVER_URL 을 주입하고, 없으면 로컬 기본값을 쓴다.
+      defaultZone: ${EUREKA_SERVER_URL:http://localhost:19000/eureka/}
+
+
+logging:
+  level:
+    # 정상 처리 경로(컨슈머 수신 · 판정 결과 · Outbox 발행)를 전부 debug로 찍고 있다.
+    # 관측 지점을 만들어놓고 레벨로 껐다면 없는 것과 같으므로 개발 중에는 켠다.
+    # 운영 프로파일이 생기면 그쪽에서 INFO로 되돌린다.
+    com.workoutdone.rpgym.game: DEBUG
+  pattern:
+    # Boot 기본 correlation 자리를 내 값으로 덮는다.
+    # traceId 만으로는 "이 서비스 안의 한 처리 구간"까지만 묶인다.
+    # eventId 는 Health 의 outbox 행과 대조할 수 있는 비즈니스 식별자라 함께 찍는다.
+    #
+    # userId 는 패턴에 넣지 않는다 -- 서비스 로그 메시지들이 이미 userId= 를 찍고 있어 중복이다.
+    # MDC 에는 남겨둔다. 구조화 JSON 로그를 붙이면 그때 자동으로 필드가 된다.
+    correlation: "[%X{traceId:-},%X{spanId:-},%X{eventId:-}] "
+management:
+  endpoints:
+    web:
+      exposure:
+        # HTTP로 노출할 Actuator Endpoint
+        # health: 상태 확인, info: 애플리케이션 정보
+        # prometheus: monitoring/prometheus/prometheus.yml 이 15초마다 스크랩한다
+        include: health, info, prometheus
+
+rpgym:
+  kafka:
+    #  이벤트 계약 -- Health 3종을 한 토픽으로 통합했다
+    health-events-topic: health.events
+
+  outbox:
+    # 발행 토픽. 소비 측(Notification)과 맞춰야 하는 값이라 팀 확인이 필요하다 (잠정값)
+    topic: game.events
+    # 폴링 주기(ms). fixedDelay 이므로 이전 라운드가 끝난 뒤부터 센다
+    poll-interval: 1000
+    # 한 라운드에 집을 PENDING 최대 건수
+    poll-size: 100
+    # Kafka 발행 응답 대기 시간
+    send-timeout: 5s
+    # 재시도가 이 횟수를 넘으면 로그를 WARN -> ERROR로 올린다 (상태는 PENDING 유지)
+    escalate-after: 10
+
+  xp:
+    # XP 원본 선택. mock = 해시 기반 가짜값, wallet = XpQueryService 경유 실제 wallets.
+    # wallets 와 XpQueryService 가 develop 에 들어와서 wallet 으로 전환한다.
+    source: wallet
