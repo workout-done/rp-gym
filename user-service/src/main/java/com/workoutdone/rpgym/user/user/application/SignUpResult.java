@@ -1,7 +1,7 @@
 package com.workoutdone.rpgym.user.user.application;
 
+import com.workoutdone.rpgym.common.security.UserRole;
 import com.workoutdone.rpgym.user.user.domain.User;
-import com.workoutdone.rpgym.user.user.domain.UserRole;
 import com.workoutdone.rpgym.user.user.domain.UserStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

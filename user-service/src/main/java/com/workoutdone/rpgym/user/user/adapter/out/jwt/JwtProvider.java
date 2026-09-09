@@ -2,7 +2,7 @@ package com.workoutdone.rpgym.user.user.adapter.out.jwt;
 
 import com.workoutdone.rpgym.common.jwt.JwtClaimConstants;
 import com.workoutdone.rpgym.common.jwt.JwtSecretKeyFactory;
-import com.workoutdone.rpgym.user.user.domain.UserRole;
+import com.workoutdone.rpgym.common.security.UserRole;
 import io.jsonwebtoken.Jwts;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
