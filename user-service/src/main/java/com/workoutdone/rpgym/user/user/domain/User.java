@@ -65,6 +65,19 @@ public class User extends BaseCreatedUpdatedDeletedEntity {
         return email == null ? null : email.trim().toLowerCase();
     }
 
+    public void changeNickname(String nickname) {
+        this.nickname = nickname;
+    }
+
+    public void changeSlackId(String slackId) {
+        this.slackId = slackId;
+    }
+
+    // password는 이미 해시된 값을 받는다. 평문 해싱은 application 계층(PasswordEncoder)의 책임이다.
+    public void changePassword(String encodedPassword) {
+        this.password = encodedPassword;
+    }
+
     // 탈퇴(deletedAt 설정)한 계정은 status 컬럼 값과 무관하게 항상 WITHDRAWN으로 취급
     // 다른 서비스(Health/Game 등)에 사용자 상태를 노출할 때 이 값을 사용
     public UserStatus getDisplayStatus() {
