@@ -1,7 +1,8 @@
 package com.workoutdone.rpgym.user.dailyhealthgoal.adapter.in.web.dto;
 
 import com.workoutdone.rpgym.user.dailyhealthgoal.application.RegisterDailyHealthGoalCommand;
-import jakarta.validation.constraints.PositiveOrZero;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Positive;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -15,13 +16,16 @@ import java.util.UUID;
 @Builder
 public class ReqRegisterDailyHealthGoalDto {
 
-    @PositiveOrZero(message = "목표 걸음 수는 0 이상이어야 합니다.")
+    @Positive(message = "목표 걸음 수는 0보다 커야 합니다.")
+    @Max(value = 50000, message = "목표 걸음 수는 50,000보를 초과할 수 없습니다.")
     private Integer stepGoal;
 
-    @PositiveOrZero(message = "목표 활동 시간은 0 이상이어야 합니다.")
+    @Positive(message = "목표 활동 시간은 0보다 커야 합니다.")
+    @Max(value = 300, message = "목표 활동 시간은 300분을 초과할 수 없습니다.")
     private Integer activeMinutesGoal;
 
-    @PositiveOrZero(message = "목표 활동 칼로리는 0 이상이어야 합니다.")
+    @Positive(message = "목표 활동 칼로리는 0보다 커야 합니다.")
+    @Max(value = 3000, message = "목표 활동 칼로리는 3,000kcal를 초과할 수 없습니다.")
     private Integer activeCaloriesGoal;
 
     public RegisterDailyHealthGoalCommand toCommand(UUID userId) {

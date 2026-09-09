@@ -2,8 +2,8 @@ CREATE TABLE user_service.user_daily_health_goals
 (
     id                    UUID    PRIMARY KEY,
     user_id               UUID    NOT NULL,
-    step_goal             INTEGER NOT NULL DEFAULT 3000,
-    active_minutes_goal   INTEGER NOT NULL DEFAULT 30,
+    step_goal             INTEGER NOT NULL DEFAULT 5000,
+    active_minutes_goal   INTEGER NOT NULL DEFAULT 60,
     active_calories_goal  INTEGER NOT NULL DEFAULT 300,
     created_at            TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at            TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
