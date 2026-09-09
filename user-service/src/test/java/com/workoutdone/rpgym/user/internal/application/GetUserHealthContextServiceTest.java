@@ -62,7 +62,7 @@ class GetUserHealthContextServiceTest {
         assertThat(result.getDailyGoal().getStepGoal()).isEqualTo(5000);
         assertThat(result.getDailyGoal().getActiveMinutesGoal()).isEqualTo(60);
         assertThat(result.getDailyGoal().getActiveCaloriesGoal()).isEqualTo(500);
-        assertThat(result.getLongTermGoals()).isNull();
+        assertThat(result.getLongTermGoals()).isEmpty();
     }
 
     @Test
@@ -81,8 +81,8 @@ class GetUserHealthContextServiceTest {
     }
 
     @Test
-    @DisplayName("일일 목표가 미등록이면 dailyGoal은 null로, healthProfile은 채워서 반환한다")
-    void getHealthContext_dailyGoalNotRegistered_returnsNullDailyGoal() {
+    @DisplayName("일일 목표가 미등록이면 dailyGoal은 기본값으로, healthProfile은 채워서 반환한다")
+    void getHealthContext_dailyGoalNotRegistered_returnsDefaultDailyGoal() {
         UUID userId = UUID.randomUUID();
         given(userRepository.findByIdAndDeletedAtIsNull(userId)).willReturn(Optional.of(activeUser()));
         given(healthProfileRepository.findByUserIdAndDeletedAtIsNull(userId))
@@ -92,12 +92,14 @@ class GetUserHealthContextServiceTest {
         GetUserHealthContextResult result = getUserHealthContextService.getHealthContext(userId);
 
         assertThat(result.getHealthProfile()).isNotNull();
-        assertThat(result.getDailyGoal()).isNull();
+        assertThat(result.getDailyGoal().getStepGoal()).isEqualTo(DailyHealthGoal.DEFAULT_STEP_GOAL);
+        assertThat(result.getDailyGoal().getActiveMinutesGoal()).isEqualTo(DailyHealthGoal.DEFAULT_ACTIVE_MINUTES_GOAL);
+        assertThat(result.getDailyGoal().getActiveCaloriesGoal()).isEqualTo(DailyHealthGoal.DEFAULT_ACTIVE_CALORIES_GOAL);
     }
 
     @Test
-    @DisplayName("둘 다 미등록이면 healthProfile/dailyGoal 모두 null로 반환한다")
-    void getHealthContext_neitherRegistered_returnsBothNull() {
+    @DisplayName("둘 다 미등록이면 healthProfile은 null, dailyGoal은 기본값으로 반환한다")
+    void getHealthContext_neitherRegistered_returnsNullHealthProfileAndDefaultDailyGoal() {
         UUID userId = UUID.randomUUID();
         given(userRepository.findByIdAndDeletedAtIsNull(userId)).willReturn(Optional.of(activeUser()));
         given(healthProfileRepository.findByUserIdAndDeletedAtIsNull(userId)).willReturn(Optional.empty());
@@ -106,8 +108,10 @@ class GetUserHealthContextServiceTest {
         GetUserHealthContextResult result = getUserHealthContextService.getHealthContext(userId);
 
         assertThat(result.getHealthProfile()).isNull();
-        assertThat(result.getDailyGoal()).isNull();
-        assertThat(result.getLongTermGoals()).isNull();
+        assertThat(result.getDailyGoal().getStepGoal()).isEqualTo(DailyHealthGoal.DEFAULT_STEP_GOAL);
+        assertThat(result.getDailyGoal().getActiveMinutesGoal()).isEqualTo(DailyHealthGoal.DEFAULT_ACTIVE_MINUTES_GOAL);
+        assertThat(result.getDailyGoal().getActiveCaloriesGoal()).isEqualTo(DailyHealthGoal.DEFAULT_ACTIVE_CALORIES_GOAL);
+        assertThat(result.getLongTermGoals()).isEmpty();
     }
 
     @Test

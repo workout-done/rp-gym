@@ -1,6 +1,7 @@
 package com.workoutdone.rpgym.user.internal.adapter.in.web;
 
 import com.workoutdone.rpgym.common.exception.BaseException;
+import com.workoutdone.rpgym.user.dailyhealthgoal.domain.DailyHealthGoal;
 import com.workoutdone.rpgym.user.internal.application.DailyGoalSummary;
 import com.workoutdone.rpgym.user.internal.application.GetUserHealthContextResult;
 import com.workoutdone.rpgym.user.internal.application.GetUserHealthContextService;
@@ -16,6 +17,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.math.BigDecimal;
 import java.util.UUID;
 
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
@@ -59,7 +61,7 @@ class InternalUserHealthContextControllerTest {
                 .andExpect(jsonPath("$.dailyGoal.stepGoal").value(5000))
                 .andExpect(jsonPath("$.dailyGoal.activeMinutesGoal").value(60))
                 .andExpect(jsonPath("$.dailyGoal.activeCaloriesGoal").value(500))
-                .andExpect(jsonPath("$.longTermGoals").value(nullValue()));
+                .andExpect(jsonPath("$.longTermGoals", hasSize(0)));
     }
 
     @Test
@@ -84,15 +86,15 @@ class InternalUserHealthContextControllerTest {
     }
 
     @Test
-    @DisplayName("일일 목표가 미등록이면 dailyGoal은 null로 반환한다")
-    void getHealthContext_dailyGoalNotRegistered_returnsNullDailyGoal() throws Exception {
+    @DisplayName("일일 목표가 미등록이면 dailyGoal은 기본값으로 채워서 반환한다")
+    void getHealthContext_dailyGoalNotRegistered_returnsDefaultDailyGoal() throws Exception {
         UUID userId = UUID.randomUUID();
         GetUserHealthContextResult result = GetUserHealthContextResult.builder()
                 .healthProfile(HealthProfileSummary.builder()
                         .height(BigDecimal.valueOf(170.5))
                         .weight(BigDecimal.valueOf(65.2))
                         .build())
-                .dailyGoal(null)
+                .dailyGoal(DailyGoalSummary.defaultValue())
                 .longTermGoals(null)
                 .build();
         given(getUserHealthContextService.getHealthContext(userId)).willReturn(result);
@@ -100,7 +102,9 @@ class InternalUserHealthContextControllerTest {
         mockMvc.perform(get(URL, userId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.healthProfile.height").value(170.5))
-                .andExpect(jsonPath("$.dailyGoal").value(nullValue()));
+                .andExpect(jsonPath("$.dailyGoal.stepGoal").value(DailyHealthGoal.DEFAULT_STEP_GOAL))
+                .andExpect(jsonPath("$.dailyGoal.activeMinutesGoal").value(DailyHealthGoal.DEFAULT_ACTIVE_MINUTES_GOAL))
+                .andExpect(jsonPath("$.dailyGoal.activeCaloriesGoal").value(DailyHealthGoal.DEFAULT_ACTIVE_CALORIES_GOAL));
     }
 
     @Test
