@@ -514,10 +514,6 @@ services:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/service-url.inc:/etc/nginx/conf.d/service-url.inc:ro
 
-    depends_on:
-      - gateway-blue
-      - gateway-green
-
     networks:
       - blue-network
       - green-network
