@@ -61,6 +61,9 @@ public class DailyHealthSummary extends BaseCreatedUpdatedEntity {
     @Column(name = "calculated_at", nullable = false)
     private Instant calculatedAt;
 
+    @Column(name = "quest_suggested_at")
+    private Instant questSuggestedAt;
+
     @Version
     @Column(name = "version", nullable = false)
     private Long version;
@@ -96,6 +99,14 @@ public class DailyHealthSummary extends BaseCreatedUpdatedEntity {
         }
         this.allGoalsAchieved = true;
         this.achievedAt = now;
+        return true;
+    }
+
+    public boolean markQuestSuggested(Instant now) {
+        if (this.questSuggestedAt != null) {
+            return false;
+        }
+        this.questSuggestedAt = now;
         return true;
     }
 
