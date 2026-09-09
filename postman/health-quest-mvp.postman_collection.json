@@ -1,0 +1,259 @@
+{
+  "info": {
+    "name": "Health Quest MVP 관통 시나리오",
+    "description": "게이트웨이(19001) 경유 전체 경로. 위에서 아래로 순서대로 실행한다.\n회원가입 이메일이 매 실행마다 새로 만들어지므로 몇 번이든 반복할 수 있다.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "gwUrl", "value": "http://localhost:19001" },
+    { "key": "password", "value": "test1234!" },
+    { "key": "email", "value": "" },
+    { "key": "userId", "value": "" },
+    { "key": "accessToken", "value": "" },
+    { "key": "measuredAt1", "value": "" },
+    { "key": "measuredAt2", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "00 게이트웨이 헬스체크",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "{{gwUrl}}/actuator/health", "host": ["{{gwUrl}}"], "path": ["actuator", "health"] }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('200 OK', () => pm.response.to.have.status(200));",
+              "console.log('게이트웨이 살아있음:', pm.response.text());"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "01 회원가입",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\",\n  \"nickname\": \"유준테스트\",\n  \"slackId\": \"U_YUJUN_TEST\"\n}"
+        },
+        "url": { "raw": "{{gwUrl}}/api/v1/users/signup", "host": ["{{gwUrl}}"], "path": ["api", "v1", "users", "signup"] }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// 매 실행마다 새 유저를 만든다.",
+              "// Health는 유저·날짜당 한 번만 퀘스트를 제안하므로,",
+              "// 같은 유저로는 시나리오를 두 번 못 돌린다.",
+              "pm.collectionVariables.set('email', 'yujun+' + Date.now() + '@example.com');"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('201 Created', () => pm.response.to.have.status(201));",
+              "const body = pm.response.json();",
+              "pm.collectionVariables.set('userId', body.id);",
+              "console.log('userId =', body.id);",
+              "console.log('email  =', body.email);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 로그인",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}"
+        },
+        "url": { "raw": "{{gwUrl}}/api/v1/users/login", "host": ["{{gwUrl}}"], "path": ["api", "v1", "users", "login"] }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('200 OK', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.collectionVariables.set('accessToken', body.accessToken);",
+              "console.log('accessToken 저장됨 (앞 20자):', String(body.accessToken).slice(0, 20) + '...');"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 일일 목표 등록 (5000보 / 60분 / 300kcal)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"stepGoal\": 5000,\n  \"activeMinutesGoal\": 60,\n  \"activeCaloriesGoal\": 300\n}"
+        },
+        "url": { "raw": "{{gwUrl}}/api/v1/daily-goals/me", "host": ["{{gwUrl}}"], "path": ["api", "v1", "daily-goals", "me"] }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('201 Created', () => pm.response.to.have.status(201));",
+              "// 이 목표를 등록하지 않으면 health-service가 기본값(5000/60/300)을 쓴다.",
+              "// 값은 같지만, 등록해두면 '어느 값이 쓰였는지'가 확실해진다."
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 1차 동기화 → 퀘스트 생성 트리거",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"measuredAt\": \"{{measuredAt1}}\",\n  \"steps\": 1000,\n  \"activeMinutes\": 55,\n  \"activeCalories\": 280,\n  \"source\": \"SYNTHETIC\"\n}"
+        },
+        "url": { "raw": "{{gwUrl}}/api/v1/health-activities/sync", "host": ["{{gwUrl}}"], "path": ["api", "v1", "health-activities", "sync"] }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// 두 시점을 여기서 한 번에 정한다. 그래야 2차가 1차보다 확실히 뒤고,",
+              "// 둘 다 같은 KST 날짜에 들어간다.",
+              "const now = Date.now();",
+              "const iso = (ms) => new Date(ms).toISOString().replace(/\\.\\d{3}Z$/, 'Z');",
+              "pm.collectionVariables.set('measuredAt1', iso(now - 60 * 60 * 1000));",
+              "pm.collectionVariables.set('measuredAt2', iso(now - 30 * 60 * 1000));",
+              "console.log('measuredAt1 =', pm.collectionVariables.get('measuredAt1'));",
+              "console.log('measuredAt2 =', pm.collectionVariables.get('measuredAt2'));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('201 Created (신규 저장)', () => pm.response.to.have.status(201));",
+              "// 부족 비율 -- 걸음수만 크게 부족하게 만들어 metric을 STEPS로 고정한다.",
+              "//   STEPS    (5000-1000)/5000 = 0.800   <- 최다 부족. 이게 뽑힌다",
+              "//   MINUTES  (60-55)/60      = 0.083",
+              "//   CALORIES (300-280)/300   = 0.067",
+              "// 이 요청 하나가 이벤트 두 개를 만든다:",
+              "//   HEALTH_ACTIVITY_SYNCED  (누적값)",
+              "//   QUEST_SUGGESTED         (AI 제목 + target 1500)"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 활성 퀘스트 조회 (생성 확인)",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+        "url": { "raw": "{{gwUrl}}/api/v1/games/quests/me/active", "host": ["{{gwUrl}}"], "path": ["api", "v1", "games", "quests", "me", "active"] }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// 200 이면 성공. 204 면 퀘스트가 안 생겼다는 뜻이다.",
+              "if (pm.response.code === 204) {",
+              "  console.log('204 -- 퀘스트가 없다. game-service 로그에서 outcome 을 확인할 것.');",
+              "  console.log('SNAPSHOT_MISSING 이면 이벤트 순서가 뒤집힌 것 (알려진 이슈).');",
+              "} else {",
+              "  const q = pm.response.json();",
+              "  console.log('title      =', q.title);",
+              "  console.log('metric     =', q.metric, '(STEPS 기대)');",
+              "  console.log('targetVal  =', q.targetValue, '(1500 기대)');",
+              "  console.log(JSON.stringify(q, null, 2));",
+              "}",
+              "pm.test('200 -- 퀘스트가 생겼다', () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 2차 동기화 → 완료 + XP 지급 트리거",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"measuredAt\": \"{{measuredAt2}}\",\n  \"steps\": 2600,\n  \"activeMinutes\": 58,\n  \"activeCalories\": 290,\n  \"source\": \"SYNTHETIC\"\n}"
+        },
+        "url": { "raw": "{{gwUrl}}/api/v1/health-activities/sync", "host": ["{{gwUrl}}"], "path": ["api", "v1", "health-activities", "sync"] }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('201 Created (신규 저장)', () => pm.response.to.have.status(201));",
+              "// 달성분 = 2600 - 1000(baseline) = 1600  >=  1500(target)  ->  완료",
+              "// 누적값 세 개 모두 1차보다 크다 (역전 없음)"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 활성 퀘스트 재조회 (204 기대 = 완료됨)",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+        "url": { "raw": "{{gwUrl}}/api/v1/games/quests/me/active", "host": ["{{gwUrl}}"], "path": ["api", "v1", "games", "quests", "me", "active"] }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// 완료되면 활성 퀘스트가 사라지므로 204 가 정답이다.",
+              "// 200 이 나오면 아직 완료 판정이 안 된 것 -- 컨슈머가 늦었거나 판정이 막혔다.",
+              "pm.test('204 No Content -- 완료돼서 활성 퀘스트가 없다', () => pm.response.to.have.status(204));"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
