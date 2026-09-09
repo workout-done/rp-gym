@@ -47,6 +47,9 @@ dependencies {
     // 구조화 JSON 로그. ELK가 안 올라와도 docker compose logs | grep <traceId> 로 찾을수있음
     implementation 'net.logstash.logback:logstash-logback-encoder:8.0'
 
+    // Prometheus 가 /actuator/prometheus 를 스크랩한다.
+    runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
+
     // ── 로컬 실행 ──────────────────────────────────────────────────────
     // local 프로파일에서 Postgres 없이 단독 부팅할 때 쓴다. 배포 산출물에는 포함되지 않는다.
     developmentOnly 'com.h2database:h2'

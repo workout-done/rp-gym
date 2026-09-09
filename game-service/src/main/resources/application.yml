@@ -78,8 +78,12 @@ spring:
 
 eureka:
   instance:
-    # Eureka Server에 주소를 등록할 때 hostname 대신 IP를 선호
-    prefer-ip-address: true
+    # 로컬 IDE 실행에서는 IP 등록이 편해서 기본값이 true 다.
+    # 컨테이너에서는 blue/green + shared 두 네트워크에 붙어 IP 가 2개라
+    # 어느 쪽이 등록될지 비결정적이다. shared 쪽 IP 가 등록되면
+    # blue-network 에만 있는 게이트웨이가 못 닿는다. 그래서 compose 가 false 를 주입한다.
+    prefer-ip-address: ${EUREKA_PREFER_IP_ADDRESS:true}
+    hostname: ${EUREKA_INSTANCE_HOSTNAME:localhost}
 
   client:
     # Eureka Server에 Game Service 등록
@@ -89,8 +93,9 @@ eureka:
     fetch-registry: true
 
     service-url:
-      # Eureka Server 주소
-      defaultZone: http://localhost:19000/eureka/
+      # 컨테이너 안의 localhost 는 자기 자신이라 등록이 실패한다.
+      # compose 가 EUREKA_SERVER_URL 을 주입하고, 없으면 로컬 기본값을 쓴다.
+      defaultZone: ${EUREKA_SERVER_URL:http://localhost:19000/eureka/}
 
 
 logging:
@@ -112,8 +117,9 @@ management:
     web:
       exposure:
         # HTTP로 노출할 Actuator Endpoint
-        # health: 애플리케이션 상태 확인, info: 애플리케이션 정보 확인
-        include: health, info
+        # health: 상태 확인, info: 애플리케이션 정보
+        # prometheus: monitoring/prometheus/prometheus.yml 이 15초마다 스크랩한다
+        include: health, info, prometheus
 
 rpgym:
   kafka:
