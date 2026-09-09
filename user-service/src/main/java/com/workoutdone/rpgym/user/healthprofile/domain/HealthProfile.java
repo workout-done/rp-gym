@@ -4,12 +4,12 @@ import com.workoutdone.rpgym.common.entity.BaseCreatedUpdatedDeletedEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.UuidGenerator;
 
 import java.math.BigDecimal;
 import java.util.UUID;
@@ -21,7 +21,8 @@ import java.util.UUID;
 public class HealthProfile extends BaseCreatedUpdatedDeletedEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
+    @GeneratedValue
+    @UuidGenerator(style = UuidGenerator.Style.TIME)
     private UUID id;
 
     @Column(name = "user_id", nullable = false, updatable = false)
