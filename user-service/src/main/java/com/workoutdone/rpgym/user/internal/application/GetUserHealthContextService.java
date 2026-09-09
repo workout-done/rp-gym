@@ -31,13 +31,15 @@ public class GetUserHealthContextService {
                 .map(HealthProfileSummary::from)
                 .orElse(null);
 
+        // 미등록 시에는 등록 API와 동일한 기본값으로 채워서 반환(5,000보/60분/300kcal)
+        // 기본값 관리를 User Service 한 곳으로 모아, 소비하는 서비스마다 다른 fallback을 두지 않도록 한다.
         DailyGoalSummary dailyGoal = dailyHealthGoalRepository.findByUserIdAndDeletedAtIsNull(userId)
                 .map(DailyGoalSummary::from)
-                .orElse(null);
+                .orElseGet(DailyGoalSummary::defaultValue);
 
         ////TO-DO: 장기 목표 기능이 추후에 구현되면 status='IN_PROGRESS'인 목표 목록으로 채우고
-        ////        그 전까진 임시로 null 로 채운다.
-        List<LongTermGoalSummary> longTermGoals = null;
+        ////        그 전까진 임시로 빈 리스트로 채운다.
+        List<LongTermGoalSummary> longTermGoals = List.of();
 
         return GetUserHealthContextResult.builder()
                 .healthProfile(healthProfile)

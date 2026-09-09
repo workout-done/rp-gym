@@ -23,4 +23,13 @@ public class DailyGoalSummary {
                 .activeCaloriesGoal(dailyHealthGoal.getActiveCaloriesGoal())
                 .build();
     }
+
+    // 일일 목표를 미등록한 사용자에게 내려줄 기본값(5,000보/60분/300kcal)
+    public static DailyGoalSummary defaultValue() {
+        return DailyGoalSummary.builder()
+                .stepGoal(DailyHealthGoal.DEFAULT_STEP_GOAL)
+                .activeMinutesGoal(DailyHealthGoal.DEFAULT_ACTIVE_MINUTES_GOAL)
+                .activeCaloriesGoal(DailyHealthGoal.DEFAULT_ACTIVE_CALORIES_GOAL)
+                .build();
+    }
 }
