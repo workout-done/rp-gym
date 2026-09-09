@@ -137,6 +137,52 @@ upstream gateway {
 }
 EOF
 
+if docker ps --format '{{.Names}}' | grep -q "^rp-gym-nginx$"; then
+    echo "Testing Nginx configuration"
+
+    if ! docker exec rp-gym-nginx nginx -t; then
+        echo "Nginx configuration test failed."
+
+        cat > "${NGINX_CONF}" <<EOF
+upstream gateway {
+    server gateway-${BEFORE}:19001;
+}
+EOF
+
+        exit 1
+    fi
+
+    echo "Reload Nginx"
+
+    if ! docker exec rp-gym-nginx nginx -s reload; then
+        echo "Nginx reload failed."
+        echo "Restoring previous environment: gateway-${BEFORE}"
+
+        cat > "${NGINX_CONF}" <<EOF
+upstream gateway {
+    server gateway-${BEFORE}:19001;
+}
+EOF
+
+        if docker exec rp-gym-nginx nginx -t; then
+            docker exec rp-gym-nginx nginx -s reload
+            echo "Nginx rollback success."
+        else
+            echo "Nginx rollback configuration test failed."
+        fi
+
+        exit 1
+    fi
+
+    echo "Nginx switched to gateway-${TARGET}"
+else
+    echo "Start Nginx"
+
+    docker compose -f "${COMPOSE_FILE}" up -d nginx
+
+    echo "Nginx started with gateway-${TARGET}"
+fi
+
 echo "Testing Nginx configuration"
 
 if ! docker exec rp-gym-nginx nginx -t; then
