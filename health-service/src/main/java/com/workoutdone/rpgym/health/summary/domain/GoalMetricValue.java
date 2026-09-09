@@ -54,6 +54,10 @@ public class GoalMetricValue {
         return shortageValue;
     }
 
+    public BigDecimal getTargetValue() {
+        return targetValue;
+    }
+
     public boolean isAchieved() {
         return achieved;
     }
