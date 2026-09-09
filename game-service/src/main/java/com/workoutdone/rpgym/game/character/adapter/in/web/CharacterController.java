@@ -29,7 +29,8 @@ public class CharacterController {
         return ResponseEntity.ok(response);
     }
 
-    //특정 사용자 캐릭터 조회. 랭킹목록에서 상세로 넘어갈때 사용할것임.
+    // 특정 사용자 캐릭터 조회. 랭킹 목록에서 상세로 넘어갈 때 쓴다.
+    // 랭킹 자체가 공개이므로 캐릭터 상세(레벨/티어/XP)도 공개로 둔다. 개인 식별 정보는 담지 않는다.
     @GetMapping("/{userId}")
     public ResponseEntity<CharacterResponse> getCharacter(
             @PathVariable UUID userId
