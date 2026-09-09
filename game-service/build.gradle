@@ -9,6 +9,11 @@ java {
 }
 
 dependencies {
+
+    // ── 랭킹 ───────────────────────────────────────────────────────────
+    // Sorted Set 으로 실시간 순위를 관리한다. 랭킹 조회 경로는 DB 를 읽지 않는다.
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+
     // 공통 모듈 — BaseEntity 계열, GlobalExceptionHandler, PageResponse, ErrorCode
     implementation project(':common')
 
@@ -41,6 +46,9 @@ dependencies {
     implementation 'io.micrometer:micrometer-tracing-bridge-brave'
     // 구조화 JSON 로그. ELK가 안 올라와도 docker compose logs | grep <traceId> 로 찾을수있음
     implementation 'net.logstash.logback:logstash-logback-encoder:8.0'
+
+    // Prometheus 가 /actuator/prometheus 를 스크랩한다.
+    runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
 
     // ── 로컬 실행 ──────────────────────────────────────────────────────
     // local 프로파일에서 Postgres 없이 단독 부팅할 때 쓴다. 배포 산출물에는 포함되지 않는다.

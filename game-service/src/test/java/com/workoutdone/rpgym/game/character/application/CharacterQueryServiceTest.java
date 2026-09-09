@@ -16,8 +16,6 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 public class CharacterQueryServiceTest {
@@ -54,6 +52,7 @@ public class CharacterQueryServiceTest {
     void notFoundReturnsDefault() {
         UUID userId = UUID.randomUUID();
         given(characterReader.findByUserId(userId)).willReturn(Optional.empty());
+        given(xpClient.findTotalXp(userId)).willReturn(0);
 
         CharacterView view = sut.getCharacter(userId);
 
@@ -64,14 +63,18 @@ public class CharacterQueryServiceTest {
         assertThat(view.createdAt()).isNull();
     }
 
-    @DisplayName("캐릭터가 없으면 지갑을 조회하지 않는다")
+    @DisplayName("캐릭터 행이 없어도 XP 는 읽어서 레벨을 계산한다 — 훅이 늦어도 0 으로 굳지 않는다")
     @Test
-    void skipsXpLookupWhenNoCharacter() {
+    void readsXpEvenWhenNoCharacterRow() {
         UUID userId = UUID.randomUUID();
         given(characterReader.findByUserId(userId)).willReturn(Optional.empty());
+        given(xpClient.findTotalXp(userId)).willReturn(250);
 
-        sut.getCharacter(userId);
+        CharacterView view = sut.getCharacter(userId);
 
-        verify(xpClient, never()).findTotalXp(userId);
+        assertThat(view.level()).isEqualTo(3);
+        assertThat(view.totalXp()).isEqualTo(250);
+        assertThat(view.currentLevelXp()).isEqualTo(50);
+        assertThat(view.createdAt()).isNull();   // 행이 없으므로 타임스탬프는 여전히 없다
     }
 }

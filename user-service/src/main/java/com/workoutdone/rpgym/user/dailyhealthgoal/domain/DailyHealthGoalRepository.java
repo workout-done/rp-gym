@@ -1,5 +1,6 @@
 package com.workoutdone.rpgym.user.dailyhealthgoal.domain;
 
+import java.util.Optional;
 import java.util.UUID;
 
 public interface DailyHealthGoalRepository {
@@ -10,4 +11,7 @@ public interface DailyHealthGoalRepository {
     DailyHealthGoal saveAndFlush(DailyHealthGoal dailyHealthGoal);
 
     boolean existsByUserIdAndDeletedAtIsNull(UUID userId);
+
+    // 탈퇴/삭제된 목표는 조회 대상이 아니므로 활성 목표만 조회
+    Optional<DailyHealthGoal> findByUserIdAndDeletedAtIsNull(UUID userId);
 }
