@@ -1,9 +1,9 @@
 package com.workoutdone.rpgym.game.character.domain;
 
 
-//누적 xp를 레벨과 레벨구간 진행도를 계산하는 정책이오.
-//mvp는 현재 정책으로 고정하겠소.
-public class LevelPolicy {
+//누적 XP 로 레벨과 레벨 구간 진행도를 계산하는 정책이다.
+//MVP 는 레벨당 고정 XP 정책으로 고정한다.
+public final class LevelPolicy {
 
     /** 한 레벨을 올리는 데 필요한 XP. */
     public static final int XP_PER_LEVEL = 100;
@@ -26,7 +26,12 @@ public class LevelPolicy {
         return totalXp % XP_PER_LEVEL;
     }
 
-    //다음레벨까지 필요한 총 xp
+    /**
+     * 다음 레벨까지 필요한 총 XP.
+     *
+     *MVP 는 레벨당 고정값이라 파라미터를 쓰지 않는다.
+     * 곡선을 도입하면 totalXp 로 구간을 계산해야 하므로 시그니처를 미리 맞춰 둔다.
+     */
     public static int xpForNextLevel(int totalXp){
         validate(totalXp);
         return XP_PER_LEVEL;
