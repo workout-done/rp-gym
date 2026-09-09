@@ -38,6 +38,17 @@ public class QuestSuggestionService {
 
     @Transactional
     public SuggestionOutcome accept(QuestSuggestionCommand command) {
+        // 같은 제안이 다시 전송되는 것은 at-least-once(카프카)에서 정상이다.
+        // 상태와 무관하게 여기서 걸러야 한다 .
+        // ALREADY_ACTIVE if문은
+        // 퀘스트가 COMPLETED/EXPIRED가 된 뒤의 재송신을 통과시키고,
+        // 그러면 uk_quests_suggestion 위반이 예외로 터져 파티션이 멈춘다.
+        // 따라서 멱등성 방어에 대한 방어 코드를 애플리케이션 레이어에도 작성함으로써
+        // DB 유니크(2차)가 DB layer가 수행되도록 1차 방어를 여기서 해야한다.
+        if (questRepository.existsBySuggestionId(command.suggestionId())) {
+            return discarded(SuggestionOutcome.DUPLICATE_SUGGESTION, command);
+        }
+
         if (questRepository.findActiveByUserId(command.userId(), Instant.now()).isPresent()) {
             return discarded(SuggestionOutcome.ALREADY_ACTIVE, command);
         }
