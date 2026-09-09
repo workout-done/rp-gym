@@ -1,5 +1,6 @@
 package com.workoutdone.rpgym.user.healthprofile.domain;
 
+import java.util.Optional;
 import java.util.UUID;
 
 public interface HealthProfileRepository {
@@ -10,4 +11,7 @@ public interface HealthProfileRepository {
     HealthProfile saveAndFlush(HealthProfile healthProfile);
 
     boolean existsByUserIdAndDeletedAtIsNull(UUID userId);
+
+    // 탈퇴한(삭제된) 프로필은 조회 대상이 아니므로 활성 프로필만 조회
+    Optional<HealthProfile> findByUserIdAndDeletedAtIsNull(UUID userId);
 }
