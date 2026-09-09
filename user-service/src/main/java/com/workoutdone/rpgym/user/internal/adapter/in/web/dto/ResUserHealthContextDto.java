@@ -29,7 +29,7 @@ public class ResUserHealthContextDto {
 
     private static List<ResLongTermGoalSummaryDto> toLongTermGoalDtos(List<LongTermGoalSummary> longTermGoals) {
         if (longTermGoals == null) {
-            return null;
+            return List.of();
         }
 
         return longTermGoals.stream()

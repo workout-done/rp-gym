@@ -32,11 +32,4 @@ public enum CharacterTier {
         }
         return DIAMOND;
     }
-
-    public int getMinLevel(){
-        return minLevel;
-    }
-    public int getMaxLevel(){
-        return maxLevel;
-    }
 }

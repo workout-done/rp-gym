@@ -61,6 +61,16 @@ spring:
       # 날짜/시각을 epoch 숫자가 아닌 ISO-8601 문자열로 직렬화
       write-dates-as-timestamps: false
 
+  cloud:
+    openfeign:
+      client:
+        config:
+          default:
+            # User Service 호출이 sync() 트랜잭션 안에서 일어나므로,
+            # 응답이 늦으면 DB 커넥션을 오래 붙잡는다. 짧게 끊고 fallback으로 넘어간다.
+            connect-timeout: 2000
+            read-timeout: 3000
+
 rpgym:
   outbox:
     # PENDING 폴링 주기 (ms)
@@ -93,8 +103,8 @@ rpgym:
 
 eureka:
   instance:
-    # Eureka Server에 주소를 등록할 때 hostname 대신 IP를 선호
-    prefer-ip-address: true
+    hostname: ${EUREKA_INSTANCE_HOSTNAME:localhost}
+    prefer-ip-address: ${EUREKA_PREFER_IP_ADDRESS:true}
 
   client:
     # Eureka Server에 Health Service 등록
@@ -105,12 +115,12 @@ eureka:
 
     service-url:
       # Eureka Server 주소
-      defaultZone: http://localhost:19000/eureka/
+      defaultZone: ${EUREKA_SERVER_URL:http://localhost:19000/eureka/}
 
 management:
   endpoints:
     web:
       exposure:
         # HTTP로 노출할 Actuator Endpoint
-        # health: 애플리케이션 상태 확인, info: 애플리케이션 정보 확인
-        include: health, info
+        # health: 애플리케이션 상태 확인, info: 애플리케이션 정보 확인, prometheus: 메트릭 수집용
+        include: health, info, prometheus

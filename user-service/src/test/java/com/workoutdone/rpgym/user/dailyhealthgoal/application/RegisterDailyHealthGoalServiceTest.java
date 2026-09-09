@@ -58,7 +58,7 @@ class RegisterDailyHealthGoalServiceTest {
     }
 
     @Test
-    @DisplayName("요청에서 생략한(null) 목표값은 기본값(3000/30/300)으로 채워 저장한다")
+    @DisplayName("요청에서 생략한(null) 목표값은 기본값(5000/60/300)으로 채워 저장한다")
     void registerDailyHealthGoal_appliesDefaultsForOmittedFields() {
         UUID userId = UUID.randomUUID();
         RegisterDailyHealthGoalCommand command = command(userId, null, null, null);
