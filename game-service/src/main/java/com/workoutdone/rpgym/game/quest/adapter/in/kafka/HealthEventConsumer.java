@@ -43,6 +43,7 @@ public class HealthEventConsumer {
     private static final String HEALTH_ACTIVITY_SYNCED = "HEALTH_ACTIVITY_SYNCED";
     private static final String QUEST_SUGGESTED = "QUEST_SUGGESTED";
     private static final String DAILY_GOAL_COMPLETED = "DAILY_GOAL_COMPLETED";
+    private static final int MAX_TITLE_LENGTH = 100;
 
     private final ObjectMapper objectMapper;
     private final QuestProgressService questProgressService;
@@ -116,9 +117,20 @@ public class HealthEventConsumer {
         if (data == null) {
             return;
         }
-        if (data.suggestionId() == null || data.activityDate() == null || data.basedOnMeasuredAt() == null) {
+        // 필수 필드 검사에서 title 추가
+        if (data.suggestionId() == null || data.activityDate() == null || data.basedOnMeasuredAt() == null
+        || data.title() == null || data.title().isEmpty()) {
             log.error("QUEST_SUGGESTED 필수 필드 누락. 건너뛴다. data={}", envelope.data());
             return;
+        }
+
+        String title = data.title();
+        if (title.length() > MAX_TITLE_LENGTH) {
+            // Health는 하루에 한번만 제안한다. 하지만 내쪽에서는 제안이 몇번이 오든
+            // 활성화 퀘스트는 단 1개이다.
+            log.warn("title이 {}자를 넘어 자른다. suggestionId={} length={}", MAX_TITLE_LENGTH,
+                data.suggestionId(), title.length());
+            title= clampTitle(title);
         }
 
         SuggestionOutcome outcome = questSuggestionService.accept(new QuestSuggestionCommand(
@@ -126,7 +138,7 @@ public class HealthEventConsumer {
                 data.suggestionId(),
                 data.activityDate(),
                 data.basedOnMeasuredAt().toInstant(),
-                data.title(),
+                title, // 앞에 지역변수에서 자른 값 대입
                 data.metric(),
                 data.targetValue()
         ));
@@ -147,4 +159,17 @@ public class HealthEventConsumer {
             return null;
         }
     }
+
+    private static String clampTitle(String title) {
+        if (title.length() <= MAX_TITLE_LENGTH) {
+            return title;
+        }
+        String cut = title.substring(0, MAX_TITLE_LENGTH);
+        // 서로게이트 쌍 중간을 자르면 깨진 문자가 남는다 (AI가 이모지를 붙이는 경우)
+        if (Character.isHighSurrogate(cut.charAt(cut.length() - 1))) {
+            cut = cut.substring(0, cut.length() - 1);
+        }
+        return cut;
+    }
+
 }

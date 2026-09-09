@@ -10,4 +10,5 @@ public interface QuestRepository {
 	Optional<Quest> findById(UUID questId);
 	Quest save(Quest quest);
 	Optional<Quest> findActiveByUserId(UUID userId, Instant now);
+	boolean existsBySuggestionId(UUID suggestionId);
 }
