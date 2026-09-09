@@ -19,8 +19,8 @@ import java.util.UUID;
 @Table(name = "user_daily_health_goals", schema = "user_service")
 public class DailyHealthGoal extends BaseCreatedUpdatedDeletedEntity {
 
-    public static final int DEFAULT_STEP_GOAL = 3000;
-    public static final int DEFAULT_ACTIVE_MINUTES_GOAL = 30;
+    public static final int DEFAULT_STEP_GOAL = 5000;
+    public static final int DEFAULT_ACTIVE_MINUTES_GOAL = 60;
     public static final int DEFAULT_ACTIVE_CALORIES_GOAL = 300;
 
     @Id
