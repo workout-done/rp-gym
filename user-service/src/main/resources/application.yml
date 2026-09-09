@@ -40,7 +40,7 @@ eureka:
   instance:
     hostname: ${EUREKA_INSTANCE_HOSTNAME:localhost}
     # Eureka Server에 주소를 등록할 때 hostname 대신 IP를 선호
-    prefer-ip-address: true
+    prefer-ip-address: ${EUREKA_PREFER_IP_ADDRESS:true}
 
   client:
     # Eureka Server에 User Service 등록
