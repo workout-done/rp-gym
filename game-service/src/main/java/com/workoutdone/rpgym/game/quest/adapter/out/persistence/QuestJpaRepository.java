@@ -13,4 +13,6 @@ public interface QuestJpaRepository extends JpaRepository<Quest, UUID> {
 
     Optional<Quest> findFirstByUserIdAndStatusAndExpiredAtAfterOrderByExpiredAtAsc(
             UUID userId, QuestStatus status, Instant now);
+
+    boolean existsBySuggestionId(UUID suggestionId);
 }

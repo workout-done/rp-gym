@@ -32,4 +32,9 @@ public class QuestRepositoryImpl implements QuestRepository {
         return questJpaRepository.findFirstByUserIdAndStatusAndExpiredAtAfterOrderByExpiredAtAsc(
                 userId, QuestStatus.ACTIVE, now);
     }
+
+    @Override
+    public boolean existsBySuggestionId(UUID suggestionId) {
+        return questJpaRepository.existsBySuggestionId(suggestionId);
+    }
 }
