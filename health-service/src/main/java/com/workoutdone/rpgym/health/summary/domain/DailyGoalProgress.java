@@ -82,6 +82,10 @@ public class DailyGoalProgress extends BaseCreatedUpdatedEntity {
         return goalMetricValue.getShortageValue();
     }
 
+    public BigDecimal getTargetValue() {
+        return goalMetricValue.getTargetValue();
+    }
+
     public boolean isAchieved() {
         return goalMetricValue.isAchieved();
     }
