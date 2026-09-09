@@ -2,6 +2,7 @@ package com.workoutdone.rpgym.user.user.adapter.in.web;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.workoutdone.rpgym.common.exception.BaseException;
+import com.workoutdone.rpgym.common.security.UserRole;
 import com.workoutdone.rpgym.user.user.adapter.in.web.dto.ReqLoginDto;
 import com.workoutdone.rpgym.user.user.adapter.in.web.dto.ReqSignUpDto;
 import com.workoutdone.rpgym.user.user.application.GetMyAccountResult;
@@ -12,7 +13,6 @@ import com.workoutdone.rpgym.user.user.application.SignUpCommand;
 import com.workoutdone.rpgym.user.user.application.SignUpResult;
 import com.workoutdone.rpgym.user.user.application.SignUpService;
 import com.workoutdone.rpgym.user.user.application.UpdateMyAccountService;
-import com.workoutdone.rpgym.user.user.domain.UserRole;
 import com.workoutdone.rpgym.user.user.domain.UserStatus;
 import com.workoutdone.rpgym.user.user.domain.UserErrorCode;
 import org.junit.jupiter.api.DisplayName;

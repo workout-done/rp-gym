@@ -1,6 +1,7 @@
 package com.workoutdone.rpgym.user.user.domain;
 
 import com.workoutdone.rpgym.common.entity.BaseCreatedUpdatedDeletedEntity;
+import com.workoutdone.rpgym.common.security.UserRole;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
