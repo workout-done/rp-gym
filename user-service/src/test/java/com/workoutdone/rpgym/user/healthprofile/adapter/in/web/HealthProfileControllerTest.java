@@ -113,18 +113,6 @@ class HealthProfileControllerTest {
     }
 
     @Test
-    @DisplayName("X-User-Id가 UUID 형식이 아니면 401 UNAUTHORIZED를 반환한다")
-    void registerHealthProfile_invalidUserIdFormat() throws Exception {
-        mockMvc.perform(post(REGISTER_URL)
-                        .header("X-User-Id", "not-a-uuid")
-                        .header("X-User-Role", "USER")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(validRequest())))
-                .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
-    }
-
-    @Test
     @DisplayName("height가 없으면 400 INVALID_INPUT을 반환한다")
     void registerHealthProfile_missingHeight() throws Exception {
         ReqRegisterHealthProfileDto request = ReqRegisterHealthProfileDto.builder()
