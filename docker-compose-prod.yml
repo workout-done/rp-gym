@@ -206,7 +206,7 @@ services:
 
     healthcheck:
       test: ["CMD", "/usr/bin/loki", "-health"]
-      start_period: 30s
+      start_period: 180s
       interval: 10s
       timeout: 5s
       retries: 5
@@ -271,7 +271,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
-      start_period: 30s
+      start_period: 180s
 
     networks:
       - blue-network
@@ -296,7 +296,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
-      start_period: 30s
+      start_period: 180s
 
     networks:
       - green-network
@@ -325,7 +325,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
-      start_period: 30s
+      start_period: 180s
 
     depends_on:
       eureka-server-blue:
@@ -358,7 +358,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
-      start_period: 30s
+      start_period: 180s
 
     depends_on:
       eureka-server-green:
@@ -403,7 +403,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
-      start_period: 30s
+      start_period: 180s
 
     depends_on:
       postgres-user:
@@ -455,7 +455,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
-      start_period: 30s
+      start_period: 180s
 
     depends_on:
       postgres-user:
@@ -504,7 +504,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
-      start_period: 30s
+      start_period: 180s
 
     depends_on:
       postgres-health:
@@ -551,7 +551,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
-      start_period: 30s
+      start_period: 180s
 
     depends_on:
       postgres-health:
@@ -599,7 +599,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
-      start_period: 30s
+      start_period: 180s
 
     depends_on:
       postgres-game:
@@ -649,7 +649,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
-      start_period: 30s
+      start_period: 180s
 
     depends_on:
       postgres-game:
@@ -688,6 +688,9 @@ services:
 
       ZIPKIN_ENDPOINT: http://zipkin:9411/api/v2/spans
 
+      SLACK_BOT_TOKEN: ${SLACK_BOT_TOKEN}
+      SLACK_SIGNING_SECRET: ${SLACK_SIGNING_SECRET}
+
     expose:
       - "19013"
 
@@ -696,7 +699,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
-      start_period: 30s
+      start_period: 180s
 
     depends_on:
       postgres-notification:
@@ -733,6 +736,9 @@ services:
 
       ZIPKIN_ENDPOINT: http://zipkin:9411/api/v2/spans
 
+      SLACK_BOT_TOKEN: ${SLACK_BOT_TOKEN}
+      SLACK_SIGNING_SECRET: ${SLACK_SIGNING_SECRET}
+
     expose:
       - "19013"
 
@@ -741,7 +747,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
-      start_period: 30s
+      start_period: 180s
 
     depends_on:
       postgres-notification:
