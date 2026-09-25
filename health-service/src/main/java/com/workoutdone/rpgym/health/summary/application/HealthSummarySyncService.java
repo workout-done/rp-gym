@@ -8,6 +8,9 @@ import com.workoutdone.rpgym.health.summary.domain.DailyGoalProgressRepository;
 import com.workoutdone.rpgym.health.summary.domain.DailyHealthSummary;
 import com.workoutdone.rpgym.health.summary.domain.DailyHealthSummaryRepository;
 import com.workoutdone.rpgym.health.summary.domain.MetricType;
+import com.workoutdone.rpgym.health.outbox.application.EventOutboxPort;
+import com.workoutdone.rpgym.health.outbox.domain.HealthEventType;
+import com.workoutdone.rpgym.health.summary.application.event.DailyGoalCompletedPayload;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -22,6 +25,9 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.time.Duration;
+import java.time.ZoneId;
+import java.time.Clock;
 
 @Slf4j
 @Service
@@ -32,6 +38,8 @@ public class HealthSummarySyncService {
     private final DailyGoalProgressRepository progressRepository;
     private final ApplicationEventPublisher eventPublisher;
     private final UserServiceClient userServiceClient;
+    private final EventOutboxPort eventOutboxPort;
+    private final Clock clock;
 
     private static final BigDecimal DEFAULT_STEP_GOAL = BigDecimal.valueOf(5000);
     private static final BigDecimal DEFAULT_ACTIVE_MINUTES_GOAL = BigDecimal.valueOf(60);
@@ -40,6 +48,8 @@ public class HealthSummarySyncService {
     private static final List<MetricType> METRIC_PRIORITY = List.of(
             MetricType.STEPS, MetricType.ACTIVE_MINUTES, MetricType.ACTIVE_CALORIES
     );
+    private static final Duration QUEST_SUGGESTION_INTERVAL = Duration.ofMinutes(30);
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
     @Transactional
     public void sync(SyncedActivity syncedActivity) {
@@ -50,7 +60,7 @@ public class HealthSummarySyncService {
         int activeMinutes = syncedActivity.activeMinutes();
         int activeCalories = syncedActivity.activeCalories();
 
-        Instant now = Instant.now();
+        Instant now = clock.instant();
 
         DailyHealthSummary summary = summaryRepository.findByUserIdAndActivityDate(userId, activityDate).orElse(null);
 
@@ -82,10 +92,11 @@ public class HealthSummarySyncService {
         boolean allAchieved = !progresses.isEmpty()
                 && progresses.stream().allMatch(DailyGoalProgress::isAchieved);
         if (allAchieved) {
-            // TODO(#63 이전 논의): newlyAchieved == true 일 때 DAILY_GOAL_COMPLETED를 Outbox에 적재한다.
-            //            Game Service 업적·보상 연동과 함께 트러블슈팅 기간에 구현하기로 팀 합의.
-            summary.markAllGoalsAchieved(now);
+            boolean newlyAchieved = summary.markAllGoalsAchieved(now);
             summaryRepository.save(summary);
+            if (newlyAchieved) {
+                publishDailyGoalCompletedEvent(summary, syncedActivity.activityId());
+            }
         } else {
             publishDeficientGoalEventIfNeeded(summary, syncedActivity.activityId(), progresses, now);
         }
@@ -93,9 +104,22 @@ public class HealthSummarySyncService {
 
     private void publishDeficientGoalEventIfNeeded(DailyHealthSummary summary, UUID activityId,
                                                    List<DailyGoalProgress> progresses, Instant now) {
-        if (!summary.markQuestSuggested(now)) {
+        /*
+         * 자정 이후 "어제" 범위를 재집계해서 어제 날짜(activityDate)로 보내는
+         * 정정 동기화(#124, 외부 기기 수집 경로의 자정 직전 정정 누락 보완 규약)는
+         * Quest 제안 대상이 아니다. Game Service는 오늘 발급된 퀘스트만 기대하므로,
+         * * 어제 날짜 기준으로 제안하면 SUGGESTION_DATE_MISMATCH로 거부되거나 이미 만료된
+         * 퀘스트가 생성될 수 있다.
+         */
+        LocalDate today = now.atZone(KST).toLocalDate();
+        if (!summary.getActivityDate().isEqual(today)) {
             return;
         }
+
+        if (!summary.isQuestSuggestionDue(now, QUEST_SUGGESTION_INTERVAL)) {
+            return;
+        }
+        summary.recordQuestSuggested(now);
         summaryRepository.save(summary);
 
         Optional<DailyGoalProgress> mostDeficient = progresses.stream()
@@ -114,6 +138,26 @@ public class HealthSummarySyncService {
                 progress.getMetricType().name(),
                 progress.getShortageValue().intValue()
         )));
+    }
+
+    private void publishDailyGoalCompletedEvent(DailyHealthSummary summary, UUID activityId) {
+        UUID eventId = UUID.randomUUID();
+        String dedupKey = "DAILY_GOAL_COMPLETED:%s:%s".formatted(summary.getUserId(), summary.getActivityDate());
+
+        DailyGoalCompletedPayload payload = new DailyGoalCompletedPayload(
+                summary.getSummaryId(),
+                summary.getActivityDate(),
+                summary.getAchievedAt()
+        );
+
+        eventOutboxPort.append(
+                eventId,
+                HealthEventType.DAILY_GOAL_COMPLETED,
+                summary.getUserId(),
+                activityId,
+                dedupKey,
+                payload
+        );
     }
 
     private BigDecimal achievementDeficitRatio(DailyGoalProgress progress) {
